@@ -407,8 +407,10 @@ export default function LandingShowcaseView() {
 
       {/* 7. AUTH MODAL (GİRİŞ & KAYIT PENCERESİ) */}
       {isAuthModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-left">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-left pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            {/* Mobil Çekmece Göstergesi (Drag Handle) */}
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4 sm:hidden" />
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(false)}

@@ -18,8 +18,11 @@ import {
   MARKETPLACE_CATEGORIES,
   MarketplaceCategory,
   MarketplaceType,
+  findBestCategoryMatch,
 } from "@/data/marketplaceCategories";
 import { apiUrl } from "@/lib/api";
+import CategoryCombobox from "./CategoryCombobox";
+import ProductLinkAnalyzerBar, { AnalyzedProductData } from "./ProductLinkAnalyzerBar";
 
 interface ProfitCalculatorModalProps {
   initialPrice: number;
@@ -33,14 +36,23 @@ export default function ProfitCalculatorModal({
   onClose,
 }: ProfitCalculatorModalProps) {
   const { t } = useTranslation();
+  const [currentTitle, setCurrentTitle] = useState<string>(productTitle || "Ürün Analizi");
   const [marketplace, setMarketplace] = useState<MarketplaceType>("Trendyol");
   const [sellingPrice, setSellingPrice] = useState<number>(initialPrice || 1000);
-  const [costPrice, setCostPrice] = useState<number>(Math.round((initialPrice || 1000) * 0.45));
-  const [category, setCategory] = useState<string>("Sulu Boya");
+  const [costPrice, setCostPrice] = useState<number>(Math.round((initialPrice || 1000) * 0.40));
+
+  // Başlığa göre en uygun başlangıç kategorisi
+  const matchedInitial = useMemo(
+    () => findBestCategoryMatch(productTitle || "", "Trendyol"),
+    [productTitle]
+  );
+  const [category, setCategory] = useState<string>(
+    matchedInitial?.name || MARKETPLACE_CATEGORIES.Trendyol[0]?.name || "Kadın / Erkek Üst Giyim (Tişört, Gömlek, Kazak)"
+  );
   const [customRate, setCustomRate] = useState<string>("");
   const [isAutoShipping, setIsAutoShipping] = useState<boolean>(true);
   const [customShippingCost, setCustomShippingCost] = useState<number>(45.0);
-  const [desi, setDesi] = useState<number>(1.0);
+  const [desi, setDesi] = useState<number>(matchedInitial?.defaultDesi || 1.0);
   const [extraCost, setExtraCost] = useState<number>(10.0);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -53,23 +65,34 @@ export default function ProfitCalculatorModal({
   // Seçili Kategorinin Hiyerarşik Bilgisi
   const activeCategory = useMemo(() => {
     return (
-      currentCategories.find((c) => c.name === category) ||
+      currentCategories.find((c) => c.name.toLowerCase() === category.toLowerCase()) ||
       currentCategories[0]
     );
   }, [currentCategories, category]);
 
-  // Pazaryeri Değiştiğinde Kategori ve Oranı Eşle
+  // Pazaryeri Değiştiğinde Kategori ve Oranı Akıllı Eşle
   const handleMarketplaceChange = (nextMarketplace: MarketplaceType) => {
     setMarketplace(nextMarketplace);
-    const nextList = MARKETPLACE_CATEGORIES[nextMarketplace] || MARKETPLACE_CATEGORIES.Trendyol;
-    const matched = nextList.find(
-      (c) => c.name.toLowerCase() === category.toLowerCase()
-    );
+    const matched = findBestCategoryMatch(category || currentTitle, nextMarketplace);
     if (matched) {
       setCategory(matched.name);
     } else {
-      setCategory(nextList[0].name);
+      const nextList = MARKETPLACE_CATEGORIES[nextMarketplace] || MARKETPLACE_CATEGORIES.Trendyol;
+      setCategory(nextList[0]?.name || "");
     }
+    setCustomRate("");
+  };
+
+  // Ürün Linki Analiz Edildiğinde Otomatik Doldur
+  const handleProductAnalyzed = (data: AnalyzedProductData) => {
+    setMarketplace(data.marketplace);
+    if (data.title) setCurrentTitle(data.title);
+    if (data.price > 0) {
+      setSellingPrice(data.price);
+      setCostPrice(Math.round(data.price * 0.40));
+    }
+    if (data.category) setCategory(data.category);
+    if (data.desi > 0) setDesi(data.desi);
     setCustomRate("");
   };
 
@@ -116,17 +139,20 @@ export default function ProfitCalculatorModal({
   }, [marketplace, sellingPrice, costPrice, category, customRate, isAutoShipping, customShippingCost, desi, extraCost]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-[#0f172a] rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-[#0f172a] rounded-t-3xl sm:rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl border-t sm:border border-slate-700 max-h-[92vh] overflow-y-auto text-slate-100 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {/* Mobil Çekmece Göstergesi (Drag Handle) */}
+        <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />
+
         {/* Başlık */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
               <Calculator className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-white text-base">E-Ticaret Net Kâr & Komisyon Hesaplayıcı</h3>
-              <p className="text-xs text-slate-400 line-clamp-1 max-w-sm">{productTitle}</p>
+              <p className="text-xs text-slate-400 line-clamp-1 max-w-sm">{currentTitle}</p>
             </div>
           </div>
           <button
@@ -137,8 +163,16 @@ export default function ProfitCalculatorModal({
           </button>
         </div>
 
+        {/* Ürün Linki ile Otomatik Analiz Çubuğu */}
+        <div className="my-3.5">
+          <ProductLinkAnalyzerBar
+            currentMarketplace={marketplace}
+            onProductAnalyzed={handleProductAnalyzed}
+          />
+        </div>
+
         {/* Pazaryeri Seçimi Sekmeleri */}
-        <div className="grid grid-cols-4 gap-1.5 my-3.5 bg-[#0b0f19] p-1 rounded-xl border border-slate-800">
+        <div className="grid grid-cols-4 gap-1.5 mb-3.5 bg-[#0b0f19] p-1 rounded-xl border border-slate-800">
           {(["Trendyol", "Hepsiburada", "N11", "Amazon TR"] as MarketplaceType[]).map((m) => (
             <button
               key={m}
@@ -183,24 +217,22 @@ export default function ProfitCalculatorModal({
             />
           </div>
 
-          <div>
+          {/* Akıllı Arama Destekli 2026 Kategori Combobox */}
+          <div className="col-span-2">
             <label className="block text-[11px] font-bold text-slate-300 mb-1">
-              Kategori Komisyonu ({marketplace})
+              Kategori Komisyonu ({marketplace}) - Arama & Filtre Destekli
             </label>
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
+            <CategoryCombobox
+              marketplace={marketplace}
+              selectedCategoryName={category}
+              onSelectCategory={(cat) => {
+                setCategory(cat.name);
                 setCustomRate("");
+                if (cat.defaultDesi) {
+                  setDesi(cat.defaultDesi);
+                }
               }}
-              className="w-full px-2.5 py-2 text-xs font-bold bg-[#0b0f19] border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
-            >
-              {currentCategories.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name} (%{c.rate})
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
@@ -217,24 +249,6 @@ export default function ProfitCalculatorModal({
             />
           </div>
 
-          {/* Gerçek Pazaryeri Kategori Hiyerarşisi Göstergesi */}
-          <div className="col-span-2 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 font-semibold flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-blue-400" />
-                <span>{marketplace} Kategori Yolu:</span>
-              </span>
-              <span className="font-extrabold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">
-                %{customRate ? customRate : activeCategory?.rate} Resmi Komisyon
-              </span>
-            </div>
-            <div className="font-bold text-slate-200 text-xs truncate flex items-center gap-1">
-              <span className="text-slate-400 font-normal">{activeCategory?.path}</span>
-              <span className="text-slate-500">›</span>
-              <span className="text-emerald-400 font-bold">{activeCategory?.name}</span>
-            </div>
-          </div>
-
           <div>
             <label className="block text-[11px] font-bold text-slate-300 mb-1">
               Kargo Hacmi (Desi)
@@ -244,14 +258,19 @@ export default function ProfitCalculatorModal({
               onChange={(e) => setDesi(parseFloat(e.target.value))}
               className="w-full px-2.5 py-2 text-xs font-bold bg-[#0b0f19] border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500"
             >
-              <option value="1">1 Desi (Barem)</option>
+              <option value="0.5">0.5 Desi (Zarf / Küçük)</option>
+              <option value="1">1 Desi (Standart Barem)</option>
+              <option value="1.5">1.5 Desi</option>
               <option value="2">2 Desi</option>
               <option value="3">3 Desi</option>
-              <option value="5">5 Desi</option>
+              <option value="5">5 Desi (Orta Koli)</option>
+              <option value="10">10 Desi (Büyük Koli)</option>
+              <option value="15">15 Desi</option>
+              <option value="20">20+ Desi</option>
             </select>
           </div>
 
-          <div>
+          <div className="col-span-2">
             <label className="block text-[11px] font-bold text-slate-300 mb-1">
               Paketleme & Ek Gider (₺)
             </label>
@@ -308,9 +327,26 @@ export default function ProfitCalculatorModal({
               </div>
             </div>
 
-            <div className="bg-[#0b0f19] rounded-xl p-3 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-              <span>Başa Baş Satış Fiyatı (0 Kâr Eşiği):</span>
-              <span className="font-black text-white text-sm">₺{Number(result.break_even_price || 0).toFixed(2)}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="bg-[#0b0f19] rounded-xl p-3 border border-slate-800 text-slate-300 flex items-center justify-between">
+                <span>Başa Baş Satış Fiyatı:</span>
+                <span className="font-black text-white text-sm">₺{Number(result.break_even_price || 0).toFixed(2)}</span>
+              </div>
+              <div className="bg-[#0b0f19] rounded-xl p-3 border border-slate-800 text-slate-300 flex items-center justify-between">
+                <span>Maksimum Alış Eşiği:</span>
+                <span className="font-black text-emerald-400 text-sm">
+                  ₺{Math.max(
+                    0,
+                    sellingPrice -
+                      Number(result.commission_amount || 0) -
+                      Number(result.shipping_cost || 0) -
+                      Number(result.service_fee || 0) -
+                      Number(result.withholding_tax_amount || 0) -
+                      Number(result.net_vat_payable || 0) -
+                      Number(extraCost || 0)
+                  ).toFixed(2)}
+                </span>
+              </div>
             </div>
           </div>
         )}

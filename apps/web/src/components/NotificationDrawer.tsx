@@ -48,29 +48,29 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white w-full max-w-sm h-full shadow-2xl p-5 flex flex-col justify-between border-l border-slate-200">
+      <div className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 w-full max-w-sm h-full shadow-2xl p-5 flex flex-col justify-between border-l border-slate-200 dark:border-slate-800 pb-[max(1rem,env(safe-area-inset-bottom))] transition-colors">
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Bell className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-sm">Pazar & Fiyat Bildirimleri</h3>
-                <span className="text-[11px] text-slate-500">Canlı Pazar Alarmları</span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm">Pazar & Fiyat Bildirimleri</h3>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Canlı Pazar Alarmları</span>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Liste */}
-          <div className="mt-4 space-y-2.5 overflow-y-auto max-h-[80vh]">
+          <div className="mt-4 space-y-2.5 overflow-y-auto max-h-[80vh] scrollbar-thin">
             {loading ? (
               <div className="text-center py-8 text-xs text-slate-400">Bildirimler alınıyor...</div>
             ) : notifications.length === 0 ? (
@@ -86,22 +86,22 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
                     key={n.id}
                     className={`p-3 rounded-xl border transition-all ${
                       isBuyboxLost
-                        ? "border-rose-300 bg-rose-50/70 shadow-xs"
+                        ? "border-rose-300 dark:border-rose-800/60 bg-rose-50/70 dark:bg-rose-950/30 shadow-xs"
                         : isPriceDrop
-                        ? "border-emerald-300 bg-emerald-50/70"
-                        : "border-slate-200 bg-slate-50/50 hover:border-slate-300"
+                        ? "border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/30"
+                        : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-1.5">
                         {isBuyboxLost ? (
-                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                         ) : isPriceDrop ? (
-                          <TrendingDown className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <TrendingDown className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         ) : (
-                          <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+                          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                         )}
-                        <h4 className={`text-xs font-bold ${isBuyboxLost ? "text-rose-900" : isPriceDrop ? "text-emerald-900" : "text-slate-900"}`}>
+                        <h4 className={`text-xs font-bold ${isBuyboxLost ? "text-rose-900 dark:text-rose-200" : isPriceDrop ? "text-emerald-900 dark:text-emerald-200" : "text-slate-900 dark:text-white"}`}>
                           {n.title}
                         </h4>
                       </div>
@@ -109,7 +109,7 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
                         {formatTimestamp(n.timestamp)}
                       </span>
                     </div>
-                    <p className={`text-xs mt-1.5 ${isBuyboxLost ? "text-rose-800" : isPriceDrop ? "text-emerald-800" : "text-slate-600"}`}>
+                    <p className={`text-xs mt-1.5 ${isBuyboxLost ? "text-rose-800 dark:text-rose-300" : isPriceDrop ? "text-emerald-800 dark:text-emerald-300" : "text-slate-600 dark:text-slate-300"}`}>
                       {n.message}
                     </p>
                   </div>
@@ -119,10 +119,10 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
           </div>
         </div>
 
-        <div className="pt-4 border-t border-slate-100">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
             onClick={onClose}
-            className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
           >
             Kapat
           </button>

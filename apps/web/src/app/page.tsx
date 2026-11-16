@@ -20,6 +20,7 @@ import DashboardHomeView from "@/components/DashboardHomeView";
 import CrossMarketModal from "@/components/CrossMarketModal";
 import LandingShowcaseView from "@/components/LandingShowcaseView";
 import LegalTermsModal from "@/components/LegalTermsModal";
+import BottomNavigationBar from "@/components/BottomNavigationBar";
 import AdBanner from "@/components/AdBanner";
 import { useAuth } from "@/context/AuthContext";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
@@ -40,6 +41,7 @@ const VALID_VIEWS: NavView[] = [
 export default function HomePage() {
   const { user, loading: authLoading, decrementSearchQuota, decrementKeywordQuota } = useAuth();
   const [currentView, setCurrentView] = useState<NavView>("dashboard");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [legalModalTab, setLegalModalTab] = useState<"terms" | "privacy" | null>(null);
 
   // Zararsız URL Hash Gezinme Fonksiyonu
@@ -352,12 +354,17 @@ export default function HomePage() {
         />
       )}
 
-      {/* Sol Menü Ağacı (Sidebar) */}
+      {/* Sol Menü Ağacı (Sidebar / Mobilde Açılır Yan Çekmece) */}
       <Sidebar
         currentView={currentView}
-        onSelectView={(v) => navigateToView(v)}
+        onSelectView={(v) => {
+          navigateToView(v);
+          setIsMobileMenuOpen(false);
+        }}
         trackedCount={trackedProducts.length}
         unreadAlertCount={2}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Ana Çalışma Alanı */}
@@ -370,7 +377,11 @@ export default function HomePage() {
             setSelectedMarketplace(mp);
             handleProductSearch(searchQuery, currentCategory, 1, isDeepScan, mp);
           }}
-          onNavigate={(v) => navigateToView(v)}
+          onNavigate={(v) => {
+            navigateToView(v);
+            setIsMobileMenuOpen(false);
+          }}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onOpenNotifications={() => setIsNotificationOpen(true)}
           onOpenCalculator={() => navigateToView("profits")}
           onOpenOptimizer={() => setIsOptimizerOpen(true)}
@@ -379,8 +390,8 @@ export default function HomePage() {
           unreadCount={2}
         />
 
-        {/* Dinamik Görünüm İçeriği */}
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto scrollbar-thin">
+        {/* Dinamik Görünüm İçeriği (Mobilde alt bar payı için pb-24) */}
+        <main className="flex-1 p-3 sm:p-6 pb-24 md:pb-6 overflow-y-auto scrollbar-thin">
           <div className="max-w-7xl mx-auto">
             {/* Üst Sponsor / Reklam Bannerı */}
             <AdBanner slot="top_leaderboard" className="mb-4" />
@@ -507,6 +518,17 @@ export default function HomePage() {
             )}
           </div>
         </main>
+
+        {/* Sabit Mobil Alt Gezinme Barı (Bottom Navigation) */}
+        <BottomNavigationBar
+          currentView={currentView}
+          onSelectView={(v) => {
+            navigateToView(v);
+            setIsMobileMenuOpen(false);
+          }}
+          onOpenMenuDrawer={() => setIsMobileMenuOpen(true)}
+          trackedCount={trackedProducts.length}
+        />
       </div>
 
       {/* Modallar */}

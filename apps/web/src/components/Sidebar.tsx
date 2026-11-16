@@ -18,6 +18,9 @@ import {
   Home,
   SlidersHorizontal,
   Sparkles,
+  X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import AdBanner from "./AdBanner";
@@ -42,6 +45,8 @@ interface SidebarProps {
   onSelectView: (view: NavView) => void;
   trackedCount: number;
   unreadAlertCount: number;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export default function Sidebar({
@@ -49,50 +54,84 @@ export default function Sidebar({
   onSelectView,
   trackedCount,
   unreadAlertCount,
+  isMobileOpen = false,
+  onCloseMobile,
 }: SidebarProps) {
   const { t, lang } = useTranslation();
 
-  return (
-    <aside className="w-64 bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 select-none min-h-screen transition-colors">
-      <div>
-        {/* Brand Header */}
-        <button
-          type="button"
-          onClick={() => onSelectView("dashboard")}
-          className="w-full text-left h-16 border-b border-slate-200 dark:border-slate-800/80 px-4 flex items-center justify-between bg-white dark:bg-[#0b0f19] hover:bg-slate-50 dark:hover:bg-slate-900/60 transition group cursor-pointer"
-        >
-          <div className="flex items-center space-x-2.5">
-            <AppBrandLogo size="md" showText={false} />
-            <div>
-              <div className="font-black text-sm text-slate-900 dark:text-white tracking-wider flex items-center">
-                <span>ÜrünBul</span>
-              </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                {t.brandSubtitle}
-              </div>
-            </div>
-          </div>
-        </button>
+  const handleNavClick = (view: NavView) => {
+    onSelectView(view);
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  };
 
-        {/* Menu Navigation Items (Satıcı İstihbaratı ve Pazar Araçları) */}
-        <nav className="p-3 space-y-4 text-xs overflow-y-auto max-h-[calc(100vh-140px)] scrollbar-thin">
-          {/* 0. KONTROL PANELİ / ANA SAYFA */}
+  return (
+    <>
+      {/* Mobil Backdrop Overlay (Karanlık Arka Plan) */}
+      {isMobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 md:hidden animate-fadeIn"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Ana Kenar Çubuğu (Masaüstünde Sabit Sütun, Mobilde Açılır Yan Çekmece) */}
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-64 bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 select-none min-h-screen transition-transform duration-300 ease-in-out ${
+          isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Brand Header & Mobil Kapatma Butonu */}
+          <div className="h-16 border-b border-slate-200 dark:border-slate-800/80 px-4 flex items-center justify-between bg-white dark:bg-[#0b0f19]">
+            <button
+              type="button"
+              onClick={() => handleNavClick("dashboard")}
+              className="text-left flex items-center space-x-2.5 hover:opacity-90 transition cursor-pointer"
+            >
+              <AppBrandLogo size="md" showText={false} />
               <div>
-                <button
-                  type="button"
-                  onClick={() => onSelectView("dashboard")}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all ${
-                    currentView === "dashboard"
-                      ? "btn-emerald text-white font-bold"
-                      : "text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/60"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Home className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                    <span>{t.menuHome}</span>
-                  </span>
-                </button>
+                <div className="font-black text-sm text-slate-900 dark:text-white tracking-wider flex items-center">
+                  <span>ÜrünBul</span>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  {t.brandSubtitle}
+                </div>
               </div>
+            </button>
+
+            {/* Mobilde Kapatma (X) Butonu */}
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label="Menüyü Kapat"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Menu Navigation Items (Satıcı İstihbaratı ve Pazar Araçları) */}
+          <nav className="p-3 space-y-4 text-xs overflow-y-auto flex-1 scrollbar-thin">
+            {/* 0. KONTROL PANELİ / ANA SAYFA */}
+            <div>
+              <button
+                type="button"
+                onClick={() => handleNavClick("dashboard")}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                  currentView === "dashboard"
+                    ? "btn-emerald text-white font-bold"
+                    : "text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/60"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Home className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                  <span>{t.menuHome}</span>
+                </span>
+              </button>
+            </div>
 
               {/* 1. ÜRÜN & PAZAR RADARI */}
               <div>
@@ -101,8 +140,8 @@ export default function Sidebar({
                 </div>
                 <div className="space-y-0.5">
                   <button
-                    onClick={() => onSelectView("blackbox")}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-semibold transition-all ${
+                    onClick={() => handleNavClick("blackbox")}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
                       currentView === "blackbox"
                         ? "btn-emerald text-white font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -115,8 +154,8 @@ export default function Sidebar({
                   </button>
 
                   <button
-                    onClick={() => onSelectView("trendster")}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("trendster")}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "trendster"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -129,8 +168,8 @@ export default function Sidebar({
                   </button>
 
                   <button
-                    onClick={() => onSelectView("storefront")}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("storefront")}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "storefront"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -151,8 +190,8 @@ export default function Sidebar({
                 </div>
                 <div className="space-y-0.5">
                   <button
-                    onClick={() => onSelectView("cerebro")}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("cerebro")}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "cerebro"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -165,8 +204,8 @@ export default function Sidebar({
                   </button>
 
                   <button
-                    onClick={() => onSelectView("magnet")}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("magnet")}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "magnet"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -187,8 +226,8 @@ export default function Sidebar({
                 </div>
                 <div className="space-y-0.5">
                   <button
-                    onClick={() => onSelectView("scribbles")}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("scribbles")}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "scribbles"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -201,8 +240,8 @@ export default function Sidebar({
                   </button>
 
                   <button
-                    onClick={() => onSelectView("frankenstein")}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("frankenstein")}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "frankenstein"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -223,8 +262,8 @@ export default function Sidebar({
                 </div>
                 <div className="space-y-0.5">
                   <button
-                    onClick={() => onSelectView("profits")}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("profits")}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "profits"
                         ? "btn-emerald text-white font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -237,8 +276,8 @@ export default function Sidebar({
                   </button>
 
                   <button
-                    onClick={() => onSelectView("watchlist")}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-all ${
+                    onClick={() => handleNavClick("watchlist")}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                       currentView === "watchlist"
                         ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-bold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900"
@@ -262,6 +301,48 @@ export default function Sidebar({
       {/* Sponsor / Reklam Alanı */}
       <AdBanner slot="sidebar_bottom" />
 
+      {/* Mobilde Hızlı Tema ve Dil Değiştirici */}
+      <div className="md:hidden p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+        <div className="flex items-center gap-1.5 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              const next = lang === "TR" ? "EN" : "TR";
+              if (typeof window !== "undefined") {
+                localStorage.setItem("urunbul_lang", next);
+                window.dispatchEvent(new CustomEvent("urunbul_lang_change", { detail: next }));
+                window.dispatchEvent(new Event("languagechange"));
+              }
+            }}
+            className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1 cursor-pointer"
+          >
+            <span>{lang === "TR" ? "🇹🇷 TR" : "🇬🇧 EN"}</span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              const isDark = document.documentElement.classList.contains("dark");
+              if (isDark) {
+                document.documentElement.classList.remove("dark");
+                localStorage.setItem("urunbul_theme", "light");
+              } else {
+                document.documentElement.classList.add("dark");
+                localStorage.setItem("urunbul_theme", "dark");
+              }
+            }
+          }}
+          className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+          title="Tema Değiştir"
+        >
+          <Sun className="w-4 h-4 text-amber-500 dark:hidden" />
+          <Moon className="w-4 h-4 text-cyan-400 hidden dark:block" />
+          <span className="text-[11px]">Tema</span>
+        </button>
+      </div>
+
       {/* Plan Göstergesi (Limitsiz Beta Açık Sürüm) */}
       <div className="p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#070b14] transition-colors">
         <div className="flex items-center justify-between text-xs mb-1.5">
@@ -283,5 +364,6 @@ export default function Sidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }

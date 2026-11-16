@@ -38,17 +38,23 @@ import {
   MARKETPLACE_CATEGORIES,
   MarketplaceCategory,
   MarketplaceType,
+  findBestCategoryMatch,
 } from "@/data/marketplaceCategories";
 import { apiUrl } from "@/lib/api";
+import CategoryCombobox from "./CategoryCombobox";
+import ProductLinkAnalyzerBar, { AnalyzedProductData } from "./ProductLinkAnalyzerBar";
 
 export default function ProfitsView() {
   const { t, lang } = useTranslation();
 
   // Pazaryeri ve Maliyet Parametreleri
+  const [analyzedTitle, setAnalyzedTitle] = useState<string>("");
   const [marketplace, setMarketplace] = useState<MarketplaceType>("Trendyol");
   const [sellingPrice, setSellingPrice] = useState<number>(1250);
   const [costPrice, setCostPrice] = useState<number>(550);
-  const [category, setCategory] = useState<string>("Sulu Boya");
+  const [category, setCategory] = useState<string>(
+    MARKETPLACE_CATEGORIES.Trendyol[0]?.name || "Kadın / Erkek Üst Giyim (Tişört, Gömlek, Kazak)"
+  );
   const [customRate, setCustomRate] = useState<string>("");
   const [isAutoShipping, setIsAutoShipping] = useState<boolean>(true);
   const [customShippingCost, setCustomShippingCost] = useState<number>(45.0);
@@ -71,7 +77,7 @@ export default function ProfitsView() {
   // Seçili Kategorinin Hiyerarşik Bilgisi
   const activeCategory = useMemo(() => {
     return (
-      currentCategories.find((c) => c.name === category) ||
+      currentCategories.find((c) => c.name.toLowerCase() === category.toLowerCase()) ||
       currentCategories[0]
     );
   }, [currentCategories, category]);
@@ -79,15 +85,26 @@ export default function ProfitsView() {
   // Pazaryeri Değiştiğinde Kategoriyi ve Oranı Senkronize Et
   const handleMarketplaceChange = (nextMarketplace: MarketplaceType) => {
     setMarketplace(nextMarketplace);
-    const nextList = MARKETPLACE_CATEGORIES[nextMarketplace] || MARKETPLACE_CATEGORIES.Trendyol;
-    const matched = nextList.find(
-      (c) => c.name.toLowerCase() === category.toLowerCase()
-    );
+    const matched = findBestCategoryMatch(category || analyzedTitle, nextMarketplace);
     if (matched) {
       setCategory(matched.name);
     } else {
-      setCategory(nextList[0].name);
+      const nextList = MARKETPLACE_CATEGORIES[nextMarketplace] || MARKETPLACE_CATEGORIES.Trendyol;
+      setCategory(nextList[0]?.name || "");
     }
+    setCustomRate("");
+  };
+
+  // Ürün Linki Analiz Edildiğinde Otomatik Doldur
+  const handleProductAnalyzed = (data: AnalyzedProductData) => {
+    setMarketplace(data.marketplace);
+    if (data.title) setAnalyzedTitle(data.title);
+    if (data.price > 0) {
+      setSellingPrice(data.price);
+      setCostPrice(Math.round(data.price * 0.40));
+    }
+    if (data.category) setCategory(data.category);
+    if (data.desi > 0) setDesi(data.desi);
     setCustomRate("");
   };
 
@@ -258,6 +275,14 @@ Hesaplayıcı: https://urunbul.app`;
             );
           })}
         </div>
+
+        {/* Ürün Linki ile Otomatik Analiz Çubuğu */}
+        <div className="mt-4 pt-4 border-t border-slate-800/80">
+          <ProductLinkAnalyzerBar
+            currentMarketplace={marketplace}
+            onProductAnalyzed={handleProductAnalyzed}
+          />
+        </div>
       </div>
 
       {/* 2. Ana Hesaplayıcı Izgarası: Sol Form - Sağ Sonuçlar */}
@@ -306,25 +331,22 @@ Hesaplayıcı: https://urunbul.app`;
             </div>
 
             {/* Kategori ve Özel Komisyon (Pazaryerine Göre Gerçek Alt Kategoriler) */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  {t.categoryLabel}
+                  {t.categoryLabel} ({marketplace}) - Arama & Filtre Destekli
                 </label>
-                <select
-                  value={category}
-                  onChange={(e) => {
-                    setCategory(e.target.value);
+                <CategoryCombobox
+                  marketplace={marketplace}
+                  selectedCategoryName={category}
+                  onSelectCategory={(cat) => {
+                    setCategory(cat.name);
                     setCustomRate("");
+                    if (cat.defaultDesi) {
+                      setDesi(cat.defaultDesi);
+                    }
                   }}
-                  className="w-full px-2.5 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
-                >
-                  {currentCategories.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name} (%{c.rate})
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -404,11 +426,15 @@ Hesaplayıcı: https://urunbul.app`;
                       onChange={(e) => setDesi(parseFloat(e.target.value))}
                       className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold text-xs"
                     >
-                      <option value="1">1 Desi (Küçük)</option>
-                      <option value="2">2 Desi (Orta)</option>
+                      <option value="0.5">0.5 Desi (Zarf / Mini)</option>
+                      <option value="1">1 Desi (Standart Barem)</option>
+                      <option value="1.5">1.5 Desi</option>
+                      <option value="2">2 Desi</option>
                       <option value="3">3 Desi</option>
-                      <option value="5">5 Desi (Büyük)</option>
-                      <option value="10">10 Desi (Koli)</option>
+                      <option value="5">5 Desi (Orta Koli)</option>
+                      <option value="10">10 Desi (Büyük Koli)</option>
+                      <option value="15">15 Desi</option>
+                      <option value="20">20+ Desi</option>
                     </select>
                   </div>
                   <div className="text-[10px] text-emerald-400/90 leading-tight bg-emerald-950/40 p-2 rounded-lg border border-emerald-800/40">
@@ -566,9 +592,9 @@ Hesaplayıcı: https://urunbul.app`;
             </div>
           </div>
 
-          {/* Başa Baş Fiyatı ve Akıllı Tavsiye Kutusu */}
-          <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          {/* Başa Baş Satış Fiyatı, Maksimum Alış Eşiği ve Akıllı Tavsiye Kutusu */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-4 shadow-sm flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                 <TrendingUp className="w-5 h-5" />
               </div>
@@ -582,10 +608,36 @@ Hesaplayıcı: https://urunbul.app`;
               </div>
             </div>
 
-            <div className="text-xs text-slate-300 bg-slate-900/80 px-3.5 py-2 rounded-xl border border-slate-800 max-w-md">
-              <p className="line-clamp-2">{result?.recommendation}</p>
+            <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] text-slate-400 font-medium">
+                  Maksimum Alış Eşiği (0 Kâr Tavanı)
+                </div>
+                <div className="text-base font-black text-emerald-400">
+                  ₺{Math.max(
+                    0,
+                    sellingPrice -
+                      Number(result?.commission_amount || 0) -
+                      Number(result?.shipping_cost || 0) -
+                      Number(result?.service_fee || 0) -
+                      Number(result?.withholding_tax_amount || 0) -
+                      Number(result?.net_vat_payable || 0) -
+                      Number(extraCost || 0)
+                  ).toFixed(2)}
+                </div>
+              </div>
+              <div className="text-[10px] text-slate-400 max-w-[130px] text-right font-medium">
+                Zarar etmemek için tedarikçiye verilebilecek en yüksek tavan maliyet.
+              </div>
             </div>
           </div>
+
+          {result?.recommendation && (
+            <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-4 shadow-sm text-xs text-slate-300 flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <p>{result?.recommendation}</p>
+            </div>
+          )}
 
           {/* Tersine Hesaplayıcı: Hedef Kâra Göre Satış Fiyatı Önerileri (NeSatılır / Emperator Özelliği) */}
           {result?.target_prices && Object.keys(result.target_prices).length > 0 && (

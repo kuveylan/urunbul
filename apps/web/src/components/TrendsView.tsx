@@ -171,11 +171,11 @@ export default function TrendsView({
         </div>
       </div>
 
-      {/* 3. Trend Filtre Sekmeleri */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      {/* 3. Trend Filtre Sekmeleri (Mobilde Yatay Kaydırılabilir) */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "all"
               ? "bg-cyan-600 text-white shadow-xs"
               : "bg-[#0f172a] text-slate-400 hover:text-white border border-slate-800"
@@ -185,7 +185,7 @@ export default function TrendsView({
         </button>
         <button
           onClick={() => setActiveTab("drops")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "drops"
               ? "bg-rose-600 text-white shadow-xs"
               : "bg-[#0f172a] text-slate-400 hover:text-white border border-slate-800"
@@ -196,7 +196,7 @@ export default function TrendsView({
         </button>
         <button
           onClick={() => setActiveTab("floor")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "floor"
               ? "bg-emerald-600 text-white shadow-xs"
               : "bg-[#0f172a] text-slate-400 hover:text-white border border-slate-800"
@@ -207,7 +207,7 @@ export default function TrendsView({
         </button>
         <button
           onClick={() => setActiveTab("demand")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "demand"
               ? "bg-amber-600 text-white shadow-xs"
               : "bg-[#0f172a] text-slate-400 hover:text-white border border-slate-800"

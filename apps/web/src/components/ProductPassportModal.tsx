@@ -155,8 +155,10 @@ export default function ProductPassportModal({
   const econ = product.economics_score || (product.current_price > 300 ? 82 : 60);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
-      <div className="bg-[#0f172a] border border-blue-500/30 rounded-2xl max-w-5xl w-full p-5 sm:p-6 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
+      <div className="bg-[#0f172a] border-t sm:border border-blue-500/30 rounded-t-3xl sm:rounded-2xl max-w-5xl w-full p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 my-0 sm:my-auto max-h-[92vh] overflow-y-auto scrollbar-thin pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {/* Mobil Çekmece Göstergesi (Drag Handle) */}
+        <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-2 sm:hidden" />
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-800 gap-3">
           <div className="flex items-center space-x-3.5">

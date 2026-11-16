@@ -45,3 +45,20 @@ class ProfitCalculationResponse(BaseModel):
     cost_breakdown: Dict[str, float] = Field(default_factory=dict)
     recommendation: str
 
+
+class LinkAnalysisRequest(BaseModel):
+    url: str = Field(..., description="Pazaryeri ürün bağlantı linki")
+
+
+class LinkAnalysisResponse(BaseModel):
+    marketplace: str = Field(..., description="Tespit edilen pazaryeri (Trendyol, Hepsiburada, Amazon TR, N11)")
+    title: str = Field(..., description="Ürün başlığı")
+    selling_price: float = Field(..., description="Tespit edilen güncel satış fiyatı (₺)")
+    image_url: Optional[str] = Field(None, description="Ürün görsel bağlantısı")
+    category: str = Field(..., description="Eşleşen resmi komisyon kategorisi")
+    department: str = Field(..., description="Ana sektör / departman")
+    commission_rate: float = Field(..., description="İlgili kategorinin resmi 2026 komisyon oranı (%)")
+    estimated_desi: float = Field(default=1.0, description="Tahmini kargo desi hacmi")
+    url: str = Field(..., description="İncelenen orijinal ürün linki")
+
+

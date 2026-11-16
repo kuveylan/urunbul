@@ -12,8 +12,10 @@ export default function ExtensionModal({ isOpen, onClose }: ExtensionModalProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-[#0f172a] rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-800 max-h-[90vh] overflow-y-auto text-white">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-[#0f172a] rounded-t-3xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border-t sm:border border-slate-800 max-h-[92vh] overflow-y-auto text-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {/* Mobil Çekmece Göstergesi (Drag Handle) */}
+        <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />
         {/* Başlık */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center space-x-3">

@@ -607,7 +607,7 @@ export default function CerebroMagnetView({
             </div>
 
             {/* Sağ: SEO Eylemleri (Scribbles'a Aktar, CSV İndir, Panoya Kopyala) */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Panoya Kopyala */}
               <button
                 type="button"

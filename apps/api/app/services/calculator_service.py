@@ -1,118 +1,161 @@
-from typing import Dict, Any
-from app.schemas.calculator import ProfitCalculationRequest, ProfitCalculationResponse
+import re
+from typing import Dict, Any, Tuple, Optional, List
+from urllib.parse import urlparse, unquote
+import httpx
+from loguru import logger
+from app.schemas.calculator import (
+    ProfitCalculationRequest,
+    ProfitCalculationResponse,
+    LinkAnalysisResponse,
+)
 
 
 class CalculatorService:
     # 2026 Türkiye Pazaryerleri Resmi Kategori Komisyon Oranları Tablosu (%)
     MARKETPLACE_COMMISSIONS: Dict[str, Dict[str, float]] = {
         "Trendyol": {
-            "Sulu Boya": 16.0,
-            "Yağlı & Akrilik Boya": 16.0,
-            "Defter & Kağıt Ürünleri": 16.0,
-            "Küçük Mutfak Aletleri": 13.0,
-            "Süpürge & Temizlik Cihazları": 13.0,
-            "Bluetooth Kulaklık & Ses": 10.0,
-            "Kadın / Erkek Üst Giyim": 21.0,
+            "Kadın / Erkek Üst Giyim (Tişört, Gömlek, Kazak)": 21.0,
+            "Kadın / Erkek Alt Giyim (Pantolon, Jean, Etek)": 21.0,
+            "Elbise, Takım Elbise & Abiye": 22.0,
+            "Dış Giyim (Mont, Kaban, Trençkot, Yelek)": 22.0,
+            "İç Giyim, Pijama & Çorap": 23.0,
             "Spor Ayakkabı & Sneaker": 21.5,
-            "Cilt Bakım & Serum": 16.0,
-            "Parfüm & Deodorant": 16.0,
-            "Bebek Bezi & Bakım": 15.0,
-            "Oto Aksesuar & Paspas": 14.0,
-            "Fitness & Kondisyon": 17.0,
-            "Kahve & Sıcak İçecekler": 12.0,
-            "Telefon Kılıfı & Ekran Koruyucu": 19.0,
-            "Ev Tekstili & Nevresim": 18.0,
-            "Takı & Bijuteri": 23.0,
-            "Elektronik": 10.0,
-            "Küçük Ev Aletleri": 13.0,
-            "Giyim": 21.0,
-            "Ayakkabı & Çanta": 21.5,
-            "Ev & Yaşam": 18.0,
-            "Kozmetik": 16.0,
-            "Anne & Bebek": 15.0,
-            "Spor & Outdoor": 17.0,
-            "Otomotiv": 14.0,
-            "Süpermarket": 12.0,
-            "Kitap & Hobi": 15.0,
+            "Klasik & Günlük Ayakkabı (Topuklu, Babet, Terlik)": 21.5,
+            "Bot & Çizme": 21.5,
+            "Çanta, Sırt Çantası & Cüzdan": 22.0,
+            "Valiz & Seyahat Çantaları": 18.0,
+            "Telefon Kılıfı, Cam & Ekran Koruyucu": 20.0,
+            "Şarj Cihazı, Data Kablosu & Powerbank": 15.0,
+            "Bluetooth Kulaklık & Kablosuz Hoparlör": 11.0,
+            "Akıllı Saat & Akıllı Bileklik": 11.0,
+            "Akıllı Telefon (Cep Telefonu)": 6.0,
+            "Klavye, Mouse & Oyuncu Ekipmanları": 12.0,
+            "Dizüstü Bilgisayar (Laptop) & Tablet": 6.5,
+            "Monitör, Yazıcı & Tarayıcı": 9.0,
+            "Kahve & Çay Makineleri (Espresso, Filtre, Türk Kahvesi)": 13.0,
+            "Blender, Mikser, Mutfak Robotu & Tost Makinesi": 13.0,
+            "Airfryer (Sıcak Hava Fritözü) & Pişiriciler": 13.0,
+            "Robot Süpürge, Dikey & Toz Torbalı Süpürgeler": 12.5,
+            "Ütü & Buharlı Kırışıklık Giderici": 13.0,
+            "Tencere, Tava & Pişirme Setleri (Granit, Döküm, Çelik)": 18.0,
+            "Yemek Takımı, Çatal Kaşık & Bardak Setleri": 18.0,
+            "Ev Tekstili (Nevresim, Yorgan, Yastık, Perde)": 18.0,
+            "Mobilya (Çalışma Masası, Kitaplık, Sandalye)": 15.0,
+            "Dekoratif Aydınlatma, Avize & Halı": 19.0,
+            "Parfüm & Deodorant (EDP, EDT, Kolonya)": 16.0,
+            "Cilt Bakım Serum, Krem & Güneş Kremi": 16.5,
+            "Makyaj Ürünleri (Ruj, Fondöten, Maskara)": 17.0,
+            "Saç Bakım & Şampuan": 16.0,
+            "Tıraş Makinesi, Saç Kurutma & Düzleştirici": 13.0,
+            "Bebek Bezi & Islak Mendil": 14.5,
+            "Bebek Maması, Biberon & Emzik": 14.0,
+            "Bebek Arabası & Oto Koltuğu": 14.0,
+            "Oyuncak & Eğitici Çocuk Setleri": 17.0,
+            "Fitness Aletleri, Dambıl & Ağırlık": 16.5,
+            "Spor Giyim, Eşofman & Tayt": 20.0,
+            "Kamp Çadırı, Termos & Doğa Sporları": 17.0,
+            "Araç İçi Aksesuar, Paspas & Telefon Tutucu": 14.5,
+            "Oto Bakım, Şampuan, Cila & Motor Yağları": 13.5,
+            "Oto Lastik & Jant": 9.5,
+            "Kahve Çekirdeği, Çay & İçecekler": 12.0,
+            "Evcil Hayvan Maması (Kedi / Köpek) & Kum": 15.0,
+            "Takviye Edici Gıda, Vitamin & Protein Tozu": 14.0,
+            "Takı, Bijuteri, Kolye, Küpe & Yüzük": 23.0,
+            "Kol Saati & Güneş Gözlüğü": 20.0,
+            "Matkap, Vidalama & Elektrikli El Aletleri": 14.0,
+            "Kitap, Roman & Eğitim Kitapları": 14.0,
+            "Kırtasiye, Defter & Resim Malzemeleri": 16.0,
             "Diğer": 15.0,
         },
         "Hepsiburada": {
-            "Sulu Boya": 17.0,
-            "Defter & Bloknot": 17.0,
-            "Küçük Mutfak Aletleri": 13.0,
-            "Süpürgeler & Ütüler": 13.0,
-            "Kulaklık & Hoparlör": 11.0,
-            "Kadın / Erkek Giyim": 22.0,
-            "Günlük & Spor Ayakkabı": 22.0,
-            "Parfüm & Kozmetik": 17.0,
+            "Kadın / Erkek Üst Giyim (Tişört, Gömlek, Kazak)": 22.0,
+            "Kadın / Erkek Alt Giyim (Pantolon, Jean, Etek)": 22.0,
+            "Elbise & Takım Elbise": 22.5,
+            "Dış Giyim (Mont, Kaban, Trençkot)": 22.0,
+            "İç Giyim, Pijama & Çorap": 23.5,
+            "Spor Ayakkabı & Sneaker": 22.0,
+            "Çanta, Sırt Çantası & Cüzdan": 22.5,
+            "Telefon Kılıfı & Ekran Koruyucu": 20.0,
+            "Şarj Cihazı, Kablo & Powerbank": 15.0,
+            "Bluetooth Kulaklık & Hoparlör": 11.0,
+            "Akıllı Saat & Bileklik": 11.5,
+            "Kahve & Çay Makineleri": 13.0,
+            "Blender, Mikser & Tost Makinesi": 13.0,
+            "Airfryer (Sıcak Hava Fritözü)": 13.0,
+            "Robot Süpürge & Dikey Süpürgeler": 12.5,
+            "Tencere, Tava & Pişirme Setleri": 18.5,
+            "Yemek Takımı, Bardak & Sofra": 18.5,
+            "Ev Tekstili (Nevresim, Yorgan, Yastık)": 18.5,
+            "Parfüm & Deodorant": 17.0,
+            "Cilt Bakım Serum & Nemlendirici": 17.0,
+            "Makyaj Ürünleri (Ruj, Fondöten, Maskara)": 17.5,
             "Bebek Bezi & Islak Mendil": 14.0,
-            "Araç Bakım & Temizlik": 14.0,
-            "Fitness & Kondisyon": 16.5,
-            "Çay & Kahve & İçecek": 12.0,
-            "Cep Telefonu Kılıfları": 20.0,
-            "Ev Tekstili & Yatak": 18.5,
-            "Takı & Saat": 22.5,
-            "Elektronik": 9.5,
-            "Küçük Ev Aletleri": 13.0,
-            "Giyim": 22.0,
-            "Ayakkabı & Çanta": 22.0,
-            "Ev & Yaşam": 18.5,
-            "Kozmetik": 17.0,
-            "Anne & Bebek": 15.0,
-            "Spor & Outdoor": 16.5,
-            "Otomotiv": 14.0,
-            "Süpermarket": 12.0,
-            "Kitap & Hobi": 15.0,
-            "Diğer": 15.5,
+            "Kedi / Köpek Maması & Petshop": 15.5,
+            "Takviye Edici Gıda & Vitamin": 14.5,
+            "Diğer": 15.0,
         },
         "N11": {
-            "Sulu Boya & Resim Malzemesi": 16.5,
-            "Defter & Okul Kırtasiye": 16.5,
-            "Küçük Ev Aletleri": 14.0,
-            "Kulaklık & Ses": 11.0,
-            "Giyim & Moda": 20.5,
-            "Ayakkabı & Çanta": 21.0,
-            "Kozmetik & Kişisel Bakım": 16.5,
-            "Anne & Bebek": 14.5,
-            "Spor & Outdoor": 16.0,
-            "Otomotiv & Motosiklet": 13.5,
-            "Süpermarket": 12.5,
-            "Ev & Yaşam / Dekorasyon": 17.5,
-            "Telefon & Aksesuarları": 17.0,
-            "Elektronik": 11.0,
-            "Giyim": 20.5,
-            "Ev & Yaşam": 17.5,
-            "Kozmetik": 16.5,
-            "Kitap & Hobi": 15.0,
+            "Kadın / Erkek Giyim & Dış Giyim": 20.5,
+            "Ayakkabı, Sneaker & Çanta": 21.0,
+            "Telefon Kılıfları & Ekran Koruyucular": 17.5,
+            "Kulaklık & Ses Sistemleri": 11.0,
+            "Küçük Ev Aletleri & Kahve Makineleri": 14.0,
+            "Robot Süpürgeler & Dikey Süpürge": 13.0,
+            "Tencere, Tava & Sofra Eşyaları": 17.5,
+            "Ev Tekstili (Nevresim, Yastık, Yorgan)": 17.5,
+            "Parfüm, Cilt Bakımı & Makyaj": 16.5,
+            "Bebek Bezi & Bebek Bakımı": 14.5,
+            "Kedi / Köpek Maması & Petshop": 15.0,
+            "Spor, Fitness & Outdoor Ekipmanları": 16.0,
             "Diğer": 15.0,
         },
         "Amazon TR": {
-            "Sulu Boya & Sanat": 12.0,
-            "Defter & Yazı Gereçleri": 12.0,
-            "Tüketici Elektroniği & Kulaklık": 7.0,
-            "Küçük Ev & Mutfak Aletleri": 10.5,
-            "Giyim & Aksesuar": 15.0,
-            "Ayakkabı & Çanta": 15.0,
-            "Cilt Bakım & Güzellik": 12.0,
-            "Bebek Ürünleri": 11.0,
-            "Spor & Doğa": 13.0,
-            "Otomotiv Aksesuar": 12.0,
-            "Süpermarket & İçecek": 10.0,
-            "Kitap & Hobi": 10.0,
-            "Ev & Mutfak Gereçleri": 13.0,
-            "Cep Telefonu Aksesuarı": 13.0,
-            "Elektronik": 7.0,
-            "Küçük Ev Aletleri": 10.5,
-            "Giyim": 15.0,
-            "Ev & Yaşam": 13.0,
-            "Kozmetik": 12.0,
-            "Anne & Bebek": 11.0,
-            "Spor & Outdoor": 13.0,
-            "Otomotiv": 12.0,
-            "Süpermarket": 10.0,
+            "Kadın / Erkek Giyim (Tişört, Pantolon, Elbise)": 15.0,
+            "Ayakkabı, Spor Ayakkabı & Çantalar": 15.0,
+            "Telefon Kılıfları, Şarj Aletleri & Aksesuar": 15.0,
+            "Kulaklık, Hoparlör & Ses Cihazları": 10.0,
+            "Bilgisayar, Laptop & Çevre Birimleri (Klavye, Mouse)": 7.5,
+            "Küçük Mutfak Aletleri (Kahve Makinesi, Blender, Airfryer)": 10.5,
+            "Robot Süpürgeler & Elektrikli Süpürge": 10.0,
+            "Tencere, Tava & Sofra Gereçleri": 15.0,
+            "Ev Tekstili, Yatak & Banyo": 15.0,
+            "Kozmetik, Parfüm & Cilt Bakımı": 12.0,
+            "Bebek Ürünleri, Bez & Mama": 11.0,
+            "Spor, Fitness & Kamp Malzemeleri": 13.0,
+            "Evcil Hayvan Ürünleri & Mama": 12.0,
+            "Kitap & Basılı Eserler": 10.0,
             "Diğer": 12.0,
         },
     }
+
+    # Kategori Tahmini ve Desi Veritabanı
+    CATEGORY_DESI_AND_KEYWORDS = [
+        # (Keywords, Category Name, Department, Default Desi)
+        (["kahve makinesi", "espresso", "türk kahvesi", "çay makinesi", "filtre kahve"], "Kahve & Çay Makineleri (Espresso, Filtre, Türk Kahvesi)", "☕ Küçük Ev Aletleri", 4.0),
+        (["airfryer", "fritöz", "hava fritözü"], "Airfryer (Sıcak Hava Fritözü) & Pişiriciler", "☕ Küçük Ev Aletleri", 6.0),
+        (["robot süpürge", "dikey süpürge", "süpürge"], "Robot Süpürge, Dikey & Toz Torbalı Süpürgeler", "☕ Küçük Ev Aletleri", 7.0),
+        (["blender", "mikser", "tost makinesi", "rondo", "mutfak robotu"], "Blender, Mikser, Mutfak Robotu & Tost Makinesi", "☕ Küçük Ev Aletleri", 3.5),
+        (["kılıf", "ekran koruyucu", "kırılmaz cam", "lens"], "Telefon Kılıfı, Cam & Ekran Koruyucu", "📱 Elektronik & Telefon", 0.5),
+        (["şarj", "kablo", "powerbank", "adaptör", "type-c", "lightning"], "Şarj Cihazı, Data Kablosu & Powerbank", "📱 Elektronik & Telefon", 1.0),
+        (["kulaklık", "hoparlör", "bluetooth kulaklık", "tws", "soundbar"], "Bluetooth Kulaklık & Kablosuz Hoparlör", "📱 Elektronik & Telefon", 1.0),
+        (["akıllı saat", "smart watch", "bileklik"], "Akıllı Saat & Akıllı Bileklik", "📱 Elektronik & Telefon", 0.5),
+        (["spor ayakkabı", "sneaker", "krampon", "koşu"], "Spor Ayakkabı & Sneaker", "👟 Ayakkabı & Çanta", 2.0),
+        (["ayakkabı", "babet", "topuklu", "terlik", "sandalet"], "Klasik & Günlük Ayakkabı (Topuklu, Babet, Terlik)", "👟 Ayakkabı & Çanta", 2.0),
+        (["bot", "çizme"], "Bot & Çizme", "👟 Ayakkabı & Çanta", 3.5),
+        (["çanta", "sırt çantası", "cüzdan", "kartlık", "valiz"], "Çanta, Sırt Çantası & Cüzdan", "👟 Ayakkabı & Çanta", 1.5),
+        (["tişört", "t-shirt", "gömlek", "kazak", "sweatshirt", "bluz"], "Kadın / Erkek Üst Giyim (Tişört, Gömlek, Kazak)", "👗 Moda & Giyim", 1.0),
+        (["pantolon", "jean", "etek", "şort", "tayt", "eşofman"], "Kadın / Erkek Alt Giyim (Pantolon, Jean, Etek)", "👗 Moda & Giyim", 1.5),
+        (["elbise", "abiye", "takım elbise", "tulum"], "Elbise, Takım Elbise & Abiye", "👗 Moda & Giyim", 1.5),
+        (["mont", "kaban", "trençkot", "palto", "yelek"], "Dış Giyim (Mont, Kaban, Trençkot, Yelek)", "👗 Moda & Giyim", 3.0),
+        (["parfüm", "deodorant", "kolonya", "vücut spreyi"], "Parfüm & Deodorant (EDP, EDT, Kolonya)", "💄 Kozmetik & Bakım", 0.8),
+        (["serum", "krem", "nemlendirici", "güneş kremi", "tonik"], "Cilt Bakım Serum, Krem & Güneş Kremi", "💄 Kozmetik & Bakım", 0.5),
+        (["ruj", "fondöten", "maskara", "far", "kapatıcı"], "Makyaj Ürünleri (Ruj, Fondöten, Maskara)", "💄 Kozmetik & Bakım", 0.5),
+        (["bebek bezi", "ıslak mendil"], "Bebek Bezi & Islak Mendil", "👶 Anne & Bebek", 4.0),
+        (["tencere", "tava", "düdüklü", "sahan"], "Tencere, Tava & Pişirme Setleri (Granit, Döküm, Çelik)", "🍳 Ev, Yaşam & Mutfak", 5.0),
+        (["nevresim", "yorgan", "yastık", "battaniye", "çarşaf"], "Ev Tekstili (Nevresim, Yorgan, Yastık, Perde)", "🍳 Ev, Yaşam & Mutfak", 3.5),
+        (["kedi maması", "köpek maması", "kedi kumu"], "Evcil Hayvan Maması (Kedi / Köpek) & Kum", "🛒 Süpermarket & Petshop", 6.0),
+        (["kolajen", "protein tozu", "vitamin", "omega 3"], "Takviye Edici Gıda, Vitamin & Protein Tozu", "🛒 Süpermarket & Petshop", 1.0),
+    ]
 
     # Pazaryeri Sipariş/İşlem Hizmet Bedeli (₺)
     SERVICE_FEES: Dict[str, float] = {
@@ -324,3 +367,151 @@ class CalculatorService:
             cost_breakdown=cost_breakdown,
             recommendation=recommendation,
         )
+
+    @classmethod
+    def match_category_and_desi(cls, text: str, marketplace: str) -> Tuple[str, str, float, float]:
+        """
+        Ürün başlığındaki anahtar kelimelere göre en uygun resmi kategoriyi,
+        departmanı, komisyon oranını ve tahmini desiyi eşleştirir.
+        """
+        clean = text.lower().strip()
+        m_comm = cls.MARKETPLACE_COMMISSIONS.get(marketplace, cls.MARKETPLACE_COMMISSIONS["Trendyol"])
+
+        best_cat = list(m_comm.keys())[0]
+        best_dept = "Genel Ürünler"
+        best_desi = 1.0
+        highest_score = 0
+
+        for keywords, cat_name, dept, desi in cls.CATEGORY_DESI_AND_KEYWORDS:
+            score = 0
+            for kw in keywords:
+                if kw in clean:
+                    score += 10
+            if score > highest_score:
+                highest_score = score
+                # Pazaryerinde bu kategori veya benzeri var mı kontrol et
+                if cat_name in m_comm:
+                    best_cat = cat_name
+                else:
+                    # En yakın eşleşeni bul
+                    for avail in m_comm.keys():
+                        if any(w in avail.lower() for w in keywords):
+                            best_cat = avail
+                            break
+                    else:
+                        best_cat = cat_name if cat_name in m_comm else list(m_comm.keys())[0]
+
+                best_dept = dept
+                best_desi = desi
+
+        rate = m_comm.get(best_cat, 15.0)
+        return best_cat, best_dept, rate, best_desi
+
+    @classmethod
+    async def analyze_product_link(cls, url: str) -> LinkAnalysisResponse:
+        """
+        Kullanıcının girdiği ürün linkini (Trendyol, Hepsiburada, Amazon TR, N11)
+        asenkron olarak çözümler; başlık, güncel fiyat, görsel, komisyon kategorisi ve desi çıkarır.
+        """
+        clean_url = url.strip()
+        lower_url = clean_url.lower()
+
+        # 1. Pazaryeri Tespiti
+        marketplace = "Trendyol"
+        if "trendyol.com" in lower_url or "ty.gl" in lower_url:
+            marketplace = "Trendyol"
+        elif "hepsiburada.com" in lower_url:
+            marketplace = "Hepsiburada"
+        elif "amazon.com.tr" in lower_url or "amazon.tr" in lower_url:
+            marketplace = "Amazon TR"
+        elif "n11.com" in lower_url:
+            marketplace = "N11"
+
+        title = ""
+        price = 0.0
+        image_url = None
+
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+
+        # 2. Canlı Sayfa HTML Kazıma
+        try:
+            async with httpx.AsyncClient(timeout=7.0, follow_redirects=True, headers=headers) as client:
+                resp = await client.get(clean_url)
+                if resp.status_code == 200:
+                    html = resp.text
+
+                    # Başlık (og:title veya <title>)
+                    title_match = re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+                    if not title_match:
+                        title_match = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+                    if title_match:
+                        raw_title = title_match.group(1).strip()
+                        title = re.sub(r"\s*[-|–]\s*(Trendyol|Hepsiburada|Amazon|N11).*", "", raw_title, flags=re.IGNORECASE).strip()
+
+                    # Görsel (og:image)
+                    img_match = re.search(r'<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+                    if img_match:
+                        image_url = img_match.group(1).strip()
+
+                    # Fiyat (JSON-LD, og:price veya metin)
+                    price_match = re.search(r'["\'](?:price|lowPrice)["\']\s*:\s*["\']?([\d\.]+)["\']?', html)
+                    if price_match:
+                        try:
+                            price = float(price_match.group(1))
+                        except ValueError:
+                            pass
+
+                    if price <= 0:
+                        meta_price = re.search(r'<meta\s+property=["\'](?:product:price:amount|og:price:amount)["\']\s+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+                        if meta_price:
+                            try:
+                                price = float(meta_price.group(1).replace(",", ".").replace(" ", ""))
+                            except ValueError:
+                                pass
+
+                    if price <= 0:
+                        tl_match = re.search(r'(\d{1,5}(?:[.,]\d{2})?)\s*(?:TL|₺)', html, re.IGNORECASE)
+                        if tl_match:
+                            try:
+                                clean_p = tl_match.group(1).replace(".", "").replace(",", ".")
+                                price = float(clean_p)
+                            except ValueError:
+                                pass
+        except Exception as e:
+            logger.warning(f"Ürün linki çekilirken hata oluştu ({clean_url}): {e}. URL slug fallback devrede.")
+
+        # 3. Fallback: URL Slug'ından Ürün Adı & Kategori Çıkarımı
+        if not title or len(title) < 4:
+            parsed_path = unquote(urlparse(clean_url).path)
+            parts = [p for p in parsed_path.split("/") if p and not p.isdigit()]
+            if parts:
+                last_part = parts[-1]
+                last_part = re.sub(r"-p-\d+.*|-d-\d+.*|\.html", "", last_part, flags=re.IGNORECASE)
+                words = [w.capitalize() for w in last_part.replace("-", " ").split() if w]
+                title = " ".join(words)
+
+        if not title:
+            title = f"{marketplace} Fırsat Ürünü"
+
+        # 4. Akıllı Kategori & Desi Eşleştirmesi
+        cat_name, department, comm_rate, est_desi = cls.match_category_and_desi(title, marketplace)
+
+        return LinkAnalysisResponse(
+            marketplace=marketplace,
+            title=title,
+            selling_price=price if price > 0 else 499.0,
+            image_url=image_url,
+            category=cat_name,
+            department=department,
+            commission_rate=comm_rate,
+            estimated_desi=est_desi,
+            url=clean_url,
+        )
+

@@ -59,6 +59,7 @@ export interface Product {
   demand_score?: number;
   competition_score?: number;
   economics_score?: number;
+  estimated_net_profit?: number;
   in_cart_count?: number;
   is_tracked?: boolean;
   price_history?: any[];
@@ -131,6 +132,9 @@ export default function BlackBoxView({
 
   // Gelişmiş Filtreler Akordeon Durumu
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Görünüm Modu: Otomatik (Mobilde Kart, Masaüstünde Tablo), Kartlar veya Tablo
+  const [displayMode, setDisplayMode] = useState<"auto" | "cards" | "table">("auto");
 
   // Filtre Değerleri
   const [minPrice, setMinPrice] = useState<string>("");
@@ -958,9 +962,191 @@ export default function BlackBoxView({
         />
       )}
 
+      {/* Görünüm Değiştirici (Kart / Tablo Toggle Butonu) & Toplam Ürün Sayacı */}
+      {totalCount > 0 && (
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            Taranan Sonuçlar ({filteredProducts.length})
+          </div>
+          <div className="flex items-center bg-slate-100 dark:bg-[#1e293b] p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px] font-semibold">
+            <button
+              type="button"
+              onClick={() => setDisplayMode("cards")}
+              className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                displayMode === "cards" || displayMode === "auto"
+                  ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              📱 Kartlar
+            </button>
+            <button
+              type="button"
+              onClick={() => setDisplayMode("table")}
+              className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                displayMode === "table"
+                  ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              📑 Tablo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6.1. MOBİL ÜRÜN KARTLARI LİSTESİ (Mobilde Dokunmatik Dostu Kart Görünümü) */}
+      {totalCount > 0 && (
+        <div className={`space-y-3 ${displayMode === "table" ? "hidden" : displayMode === "cards" ? "block" : "block md:hidden"}`}>
+          {filteredProducts.map((p, idx) => {
+            const badgeInfo = getMarketBadge(p.marketplace);
+            return (
+              <div
+                key={p.external_id || idx}
+                className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs space-y-3 transition hover:border-slate-300 dark:hover:border-slate-700"
+              >
+                {/* Üst Kısım: Görsel + Başlık & Pazar Rozeti */}
+                <div className="flex gap-3">
+                  <div className="relative w-20 h-24 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 flex items-center justify-center overflow-hidden">
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt={p.title}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <ShoppingBag className="w-6 h-6 text-slate-400" />
+                    )}
+                    <span className={`absolute top-1 left-1 text-[8px] font-black px-1 py-0.2 rounded border ${badgeInfo.cls}`}>
+                      {badgeInfo.label}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1 text-[10px] text-slate-500 mb-0.5">
+                        <span className="font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide truncate">
+                          {p.brand || "GENEL"}
+                        </span>
+                        <span className="shrink-0 flex items-center gap-0.5 font-bold text-amber-500">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          {p.rating?.toFixed(1) || "4.5"} ({p.review_count || 0})
+                        </span>
+                      </div>
+
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                        {p.title}
+                      </h4>
+                    </div>
+
+                    <div className="flex items-baseline justify-between mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                      <div>
+                        <span className="text-base font-black text-slate-900 dark:text-white">
+                          ₺{p.current_price.toLocaleString("tr-TR")}
+                        </span>
+                        {p.original_price && p.original_price > p.current_price && (
+                          <span className="text-[10px] text-slate-400 line-through ml-1.5">
+                            ₺{p.original_price.toLocaleString("tr-TR")}
+                          </span>
+                        )}
+                      </div>
+
+                      <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                        ₺{(p.estimated_net_profit !== undefined ? p.estimated_net_profit : Math.round(p.current_price * 0.25)).toLocaleString("tr-TR")} Kâr
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metrik Şeridi (Aylık Satış, Ciro, Fırsat Skoru) */}
+                <div className="grid grid-cols-3 gap-1.5 py-1.5 px-2 bg-slate-50 dark:bg-[#0b0f19] rounded-xl text-center border border-slate-200 dark:border-slate-800/80 text-[10px]">
+                  <div>
+                    <div className="text-slate-400">Tahmini Satış</div>
+                    <div className="font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
+                      ~{p.estimated_monthly_sales} ad/ay
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400">Aylık Ciro</div>
+                    <div className="font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
+                      ₺{p.estimated_monthly_revenue ? (p.estimated_monthly_revenue > 1000 ? `${Math.round(p.estimated_monthly_revenue / 1000)}B` : p.estimated_monthly_revenue) : "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400">Fırsat Skoru</div>
+                    <div className="font-black text-emerald-500 mt-0.5">
+                      %{p.opportunity_score || 75}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aksiyon Butonları (Başparmakla Kolay Tıklanabilir Dokunmatik Butonlar) */}
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => onOpenPriceModal(p)}
+                    className="py-2 px-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                  >
+                    <ChartIcon className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Trend</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfitModal(p)}
+                    className="py-2 px-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>Kâr</span>
+                  </button>
+
+                  {onOpenCrossMarketModal && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCrossMarketModal(p)}
+                      className="py-2 px-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                    >
+                      <Store className="w-3.5 h-3.5" />
+                      <span>Arbitraj</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => onToggleTrack(p)}
+                    className={`py-2 px-1 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer ${
+                      p.is_tracked
+                        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {p.is_tracked ? (
+                      <>
+                        <BookmarkCheck className="w-3.5 h-3.5 text-rose-500" />
+                        <span>Takipte</span>
+                      </>
+                    ) : (
+                      <>
+                        <BookmarkPlus className="w-3.5 h-3.5" />
+                        <span>Takip</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* 6. Pazar İstihbarat & Fırsat Veri Tablosu */}
       {totalCount > 0 ? (
-        <div className="bg-[#0f172a] border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div className={`${displayMode === "cards" ? "hidden" : displayMode === "table" ? "block" : "hidden md:block"} bg-[#0f172a] border border-slate-800 rounded-xl overflow-hidden shadow-sm`}>
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full text-left text-xs">
               <thead>
