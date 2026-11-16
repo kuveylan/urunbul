@@ -1,0 +1,482 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import Sidebar, { NavView } from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
+import BlackBoxView, { Product } from "@/components/BlackBoxView";
+import TrendsView from "@/components/TrendsView";
+import CerebroMagnetView from "@/components/CerebroMagnetView";
+import StorefrontView from "@/components/StorefrontView";
+import ProfitsView from "@/components/ProfitsView";
+import ScribblesView from "@/components/ScribblesView";
+import FrankensteinView from "@/components/FrankensteinView";
+import PriceHistoryModal from "@/components/PriceHistoryModal";
+import ProfitCalculatorModal from "@/components/ProfitCalculatorModal";
+import ListingOptimizerModal from "@/components/ListingOptimizerModal";
+import NotificationDrawer from "@/components/NotificationDrawer";
+import ExtensionModal from "@/components/ExtensionModal";
+import ReviewInsightsModal from "@/components/ReviewInsightsModal";
+import DashboardHomeView from "@/components/DashboardHomeView";
+import CrossMarketModal from "@/components/CrossMarketModal";
+import { apiUrl } from "@/lib/api";
+
+export default function HomePage() {
+  const [currentView, setCurrentView] = useState<NavView>("dashboard");
+
+  // Ürün & Pazar Durumları
+  const [searchQuery, setSearchQuery] = useState("kahve makinesi");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [trackedProducts, setTrackedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [totalScannedVolume, setTotalScannedVolume] = useState<number>(14850);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(412);
+  const [isDeepScan, setIsDeepScan] = useState<boolean>(false);
+  const [currentCategory, setCurrentCategory] = useState<string>("Tüm Kategoriler");
+  const [selectedMarketplace, setSelectedMarketplace] = useState<string>("all");
+
+  // Kelime & Satıcı Verileri
+  const [keywordData, setKeywordData] = useState<any>(null);
+  const [sellerData, setSellerData] = useState<any>(null);
+  const [scribblesKeywords, setScribblesKeywords] = useState<string[]>([]);
+
+  // Modallar
+  const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
+  const [selectedProductForReviewModal, setSelectedProductForReviewModal] = useState<Product | null>(null);
+  const [crossMarketProduct, setCrossMarketProduct] = useState<Product | null>(null);
+  const [calcProduct, setCalcProduct] = useState<Product | null>(null);
+  const [optimizeProduct, setOptimizeProduct] = useState<Product | null>(null);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+
+  // 1. Ürün Arama & Canlı Pazar Taraması
+  const handleProductSearch = async (
+    overrideQuery?: string,
+    category?: string,
+    page: number = 1,
+    deepScan: boolean = false,
+    marketplaceOverride?: string,
+    forceRefresh: boolean = false
+  ) => {
+    const q = overrideQuery !== undefined ? overrideQuery : searchQuery;
+    if (!q.trim() && !category) return;
+
+    setLoading(true);
+    setErrorMessage("");
+    setCurrentPage(page);
+
+    try {
+      const cat = category !== undefined ? category : currentCategory;
+      if (category !== undefined) setCurrentCategory(category);
+
+      const mp = marketplaceOverride !== undefined ? marketplaceOverride : selectedMarketplace;
+      if (marketplaceOverride !== undefined) setSelectedMarketplace(marketplaceOverride);
+
+      const trimmed = q.trim();
+      const isTrendyolLink = trimmed.includes("trendyol.com") || trimmed.includes("-p-") || (/^\d{6,}$/.test(trimmed) && (!cat || cat === "Tüm Kategoriler"));
+      if (isTrendyolLink) {
+        const param = trimmed.startsWith("http") || trimmed.includes("trendyol.com")
+          ? `url=${encodeURIComponent(trimmed)}`
+          : `product_id=${encodeURIComponent(trimmed)}`;
+        const inspectRes = await fetch(apiUrl(`/api/v1/products/inspect?${param}`));
+        if (inspectRes.ok) {
+          const productDetail = await inspectRes.json();
+          setProducts([productDetail]);
+          setTotalScannedVolume(1);
+          setTotalPages(1);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const catParam =
+        cat && cat !== "Tüm Kategoriler"
+          ? `&category=${encodeURIComponent(cat)}`
+          : "";
+      const searchParam = q.trim() ? encodeURIComponent(q.trim()) : "fırsat";
+      const deepParam = deepScan ? "&deep_scan=true" : "";
+      const pageParam = `&page=${page}`;
+      const mpParam = mp ? `&marketplace=${encodeURIComponent(mp)}` : "";
+      const refreshParam = forceRefresh ? "&force_refresh=true" : "";
+
+      const res = await fetch(
+        apiUrl(`/api/v1/products/search?q=${searchParam}${catParam}${pageParam}${deepParam}${mpParam}${refreshParam}&sort_by=opportunity`)
+      );
+      if (!res.ok) throw new Error(`Sunucu hatası (${res.status})`);
+
+      // Header'lardan büyük veri istatistiklerini yakala
+      const headerTotal = res.headers.get("X-Total-Count");
+      const headerPages = res.headers.get("X-Total-Pages");
+      if (headerTotal) setTotalScannedVolume(parseInt(headerTotal, 10));
+      if (headerPages) setTotalPages(parseInt(headerPages, 10));
+
+      const data = await res.json();
+      setProducts(data);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage("Backend servisine bağlanılamadı veya pazar taraması yanıt vermedi. Lütfen servislerin aktif olduğunu kontrol edin.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sayfa ilk açıldığında gecikmesiz öne çıkan fırsat ürünlerini getir
+  const fetchInitialProducts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/v1/products/featured"));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setProducts(data);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Öne çıkan ürünler alınamadı, canlı arama başlatılıyor:", e);
+    }
+    // Eğer veritabanı henüz boşsa arama yap
+    handleProductSearch("kahve makinesi");
+  };
+
+  // 2. Cerebro & Magnet Kelime Analizi
+  const handleKeywordSearch = async (q: string, modeOverride?: "cerebro" | "magnet") => {
+    if (!q.trim()) return;
+    setLoading(true);
+    setErrorMessage("");
+    const targetMode = modeOverride || (currentView === "cerebro" ? "cerebro" : "magnet");
+    try {
+      const endpoint =
+        targetMode === "cerebro"
+          ? apiUrl(`/api/v1/keywords/cerebro?identifier=${encodeURIComponent(q)}`)
+          : apiUrl(`/api/v1/keywords/analyze?q=${encodeURIComponent(q)}`);
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error("Kelime analizi başarısız oldu");
+      const data = await res.json();
+      setKeywordData(data);
+    } catch (err) {
+      setErrorMessage("Anahtar kelime analizi sırasında bağlantı hatası oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Storefront Rakip Mağaza Analizi
+  const handleSellerSearch = async (name: string) => {
+    if (!name.trim()) return;
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      const res = await fetch(apiUrl(`/api/v1/sellers/analyze?name=${encodeURIComponent(name)}`));
+      if (!res.ok) throw new Error("Satıcı analizi başarısız oldu");
+      const data = await res.json();
+      setSellerData(data);
+    } catch (err) {
+      setErrorMessage("Rakip mağaza analizi sırasında bağlantı hatası oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 4. Takip Listesi (Watchlist / My List)
+  const fetchTrackedProducts = async () => {
+    try {
+      const res = await fetch(apiUrl("/api/v1/products/tracked"));
+      if (res.ok) {
+        const data = await res.json();
+        setTrackedProducts(data);
+      }
+    } catch (err) {
+      console.error("Takip listesi alınamadı:", err);
+    }
+  };
+
+  const handleToggleTrack = async (product: Product) => {
+    if (!product.id) return;
+    try {
+      const res = await fetch(apiUrl(`/api/v1/products/${product.id}/track`), {
+        method: "POST",
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, is_tracked: updated.is_tracked } : p))
+        );
+        setTrackedProducts((prev) =>
+          updated.is_tracked
+            ? [...prev, { ...product, is_tracked: true }]
+            : prev.filter((p) => p.id !== product.id)
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // İlk yüklemede popüler arama ve takip listesini getir
+  useEffect(() => {
+    fetchTrackedProducts();
+    fetchInitialProducts();
+  }, []);
+
+  // SEO Schema.org JSON-LD
+  const schemaStructuredData = useMemo(() => {
+    if (products.length === 0) return null;
+    return {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      numberOfItems: products.length,
+      itemListElement: products.slice(0, 10).map((p, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "Product",
+          name: p.title,
+          image: p.image_url || "",
+          offers: {
+            "@type": "Offer",
+            price: p.current_price,
+            priceCurrency: "TRY",
+            availability: "https://schema.org/InStock",
+            seller: {
+              "@type": "Organization",
+              name: p.seller_name || "Trendyol Satıcısı",
+            },
+          },
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: p.rating,
+            reviewCount: p.review_count || 1,
+          },
+        },
+      })),
+    };
+  }, [products]);
+
+  return (
+    <div className="min-h-screen flex bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900 transition-colors">
+      {/* SEO Schema Script */}
+      {schemaStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaStructuredData) }}
+        />
+      )}
+
+      {/* Helium 10 Sol Menü Ağacı (Sidebar) */}
+      <Sidebar
+        currentView={currentView}
+        onSelectView={(v) => {
+          setCurrentView(v);
+          if (v === "watchlist") fetchTrackedProducts();
+        }}
+        trackedCount={trackedProducts.length}
+        unreadAlertCount={2}
+      />
+
+      {/* Ana Çalışma Alanı */}
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-[#070b14] overflow-hidden transition-colors">
+        {/* Üst Header Bar */}
+        <TopBar
+          currentView={currentView}
+          selectedMarketplace={selectedMarketplace}
+          onMarketplaceChange={(mp) => {
+            setSelectedMarketplace(mp);
+            handleProductSearch(searchQuery, currentCategory, 1, isDeepScan, mp);
+          }}
+          onNavigate={(v) => setCurrentView(v)}
+          onOpenNotifications={() => setIsNotificationOpen(true)}
+          onOpenCalculator={() => setCurrentView("profits")}
+          onOpenOptimizer={() => setIsOptimizerOpen(true)}
+          onOpenExtensionModal={() => setIsExtensionModalOpen(true)}
+          unreadCount={2}
+        />
+
+        {/* Dinamik Görünüm İçeriği */}
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto scrollbar-thin">
+          <div className="max-w-7xl mx-auto">
+            {/* 0. Kontrol Paneli (Ana Sayfa) */}
+            {currentView === "dashboard" && (
+              <DashboardHomeView
+                onSelectView={(v) => setCurrentView(v)}
+                onSearch={(q) => {
+                  setSearchQuery(q);
+                  handleProductSearch(q);
+                }}
+                onOpenProfitCalculator={(p) => {
+                  setCalcProduct(p || null);
+                  setIsCalculatorOpen(true);
+                }}
+                onToggleTrack={handleToggleTrack}
+                trackedCount={trackedProducts.length}
+              />
+            )}
+
+            {/* 1. Black Box (Ürün Keşfi) */}
+            {currentView === "blackbox" && (
+              <BlackBoxView
+                products={products}
+                loading={loading}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedMarketplace={selectedMarketplace}
+                onSearch={(q, cat, forceRefresh) => handleProductSearch(q, cat, 1, isDeepScan, selectedMarketplace, forceRefresh)}
+                onToggleTrack={handleToggleTrack}
+                onOpenPriceModal={(p) => setSelectedProductForModal(p)}
+                onOpenProfitModal={(p) => setCalcProduct(p)}
+                onOpenOptimizerModal={(p) => setOptimizeProduct(p)}
+                onOpenReviewModal={(p) => setSelectedProductForReviewModal(p)}
+                onOpenCrossMarketModal={(p) => setCrossMarketProduct(p)}
+                errorMessage={errorMessage}
+                totalScannedVolume={totalScannedVolume}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                isDeepScan={isDeepScan}
+                onPageChange={(pNum) => handleProductSearch(searchQuery, currentCategory, pNum, isDeepScan, selectedMarketplace)}
+                onToggleDeepScan={(active) => {
+                  setIsDeepScan(active);
+                  handleProductSearch(searchQuery, currentCategory, 1, active, selectedMarketplace);
+                }}
+              />
+            )}
+
+            {/* 2. Fiyat & Talep Trendleri (Trend Analiz Görünümü) */}
+            {currentView === "trendster" && (
+              <TrendsView
+                products={products}
+                onOpenPriceModal={(p) => setSelectedProductForModal(p)}
+                onOpenProfitModal={(p) => setCalcProduct(p)}
+                onToggleTrack={handleToggleTrack}
+              />
+            )}
+
+            {/* 3. Cerebro & Magnet (Anahtar Kelime Zekası) */}
+            {(currentView === "cerebro" || currentView === "magnet") && (
+              <CerebroMagnetView
+                mode={currentView === "cerebro" ? "cerebro" : "magnet"}
+                keywordData={keywordData}
+                loading={loading}
+                onSearch={(q) => handleKeywordSearch(q)}
+                onSwitchMode={(newMode) => {
+                  setCurrentView(newMode);
+                  const q = keywordData?.identifier || keywordData?.query || searchQuery;
+                  if (q) handleKeywordSearch(q, newMode);
+                }}
+                onExportToScribbles={(kws) => {
+                  setScribblesKeywords(kws);
+                  setCurrentView("scribbles");
+                }}
+                errorMessage={errorMessage}
+              />
+            )}
+
+            {/* 4. Storefront (Rakip Mağaza Ciro Analizi) */}
+            {currentView === "storefront" && (
+              <StorefrontView
+                sellerData={sellerData}
+                loading={loading}
+                onSearch={handleSellerSearch}
+                onOpenProfitModal={(p) => setCalcProduct(p)}
+                onOpenPriceModal={(p) => setSelectedProductForModal(p)}
+                onOpenOptimizerModal={(p) => setOptimizeProduct(p)}
+                errorMessage={errorMessage}
+              />
+            )}
+
+            {/* 5. Profits (Kâr & Komisyon Paneli) */}
+            {currentView === "profits" && <ProfitsView />}
+
+            {/* 6. Scribbles (SEO & Başlık Builder) & Frankenstein */}
+            {currentView === "scribbles" && <ScribblesView initialKeywords={scribblesKeywords} />}
+            {currentView === "frankenstein" && <FrankensteinView />}
+
+            {/* 7. Watchlist (Takip Listem / My List) */}
+            {currentView === "watchlist" && (
+              <div className="space-y-4">
+                <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-800 shadow-sm flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-black text-white">Ürün & Fiyat Takip Listem</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Fiyat ve stok hareketlerini izlemek için eklediğiniz ürünler ({trackedProducts.length} Adet).
+                    </p>
+                  </div>
+                </div>
+                <BlackBoxView
+                  products={trackedProducts}
+                  loading={false}
+                  searchQuery=""
+                  setSearchQuery={() => {}}
+                  onSearch={() => {}}
+                  onToggleTrack={handleToggleTrack}
+                  onOpenPriceModal={(p) => setSelectedProductForModal(p)}
+                  onOpenProfitModal={(p) => setCalcProduct(p)}
+                  onOpenOptimizerModal={(p) => setOptimizeProduct(p)}
+                  onOpenReviewModal={(p) => setSelectedProductForReviewModal(p)}
+                  onOpenCrossMarketModal={(p) => setCrossMarketProduct(p)}
+                />
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* Modallar */}
+      {selectedProductForModal && (
+        <PriceHistoryModal
+          product={selectedProductForModal}
+          onClose={() => setSelectedProductForModal(null)}
+        />
+      )}
+
+      {(calcProduct || isCalculatorOpen) && (
+        <ProfitCalculatorModal
+          initialPrice={calcProduct ? calcProduct.current_price : 1000}
+          productTitle={calcProduct ? calcProduct.title : "Genel Ürün Kâr & Komisyon Analizi"}
+          onClose={() => {
+            setCalcProduct(null);
+            setIsCalculatorOpen(false);
+          }}
+        />
+      )}
+
+      {(isOptimizerOpen || optimizeProduct) && (
+        <ListingOptimizerModal
+          initialTitle={optimizeProduct ? optimizeProduct.title : ""}
+          initialBrand={optimizeProduct ? optimizeProduct.brand : ""}
+          onClose={() => {
+            setIsOptimizerOpen(false);
+            setOptimizeProduct(null);
+          }}
+        />
+      )}
+
+      <NotificationDrawer
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+      />
+
+      <ExtensionModal
+        isOpen={isExtensionModalOpen}
+        onClose={() => setIsExtensionModalOpen(false)}
+      />
+
+      {selectedProductForReviewModal && (
+        <ReviewInsightsModal
+          product={selectedProductForReviewModal}
+          onClose={() => setSelectedProductForReviewModal(null)}
+        />
+      )}
+
+      {crossMarketProduct && (
+        <CrossMarketModal
+          product={crossMarketProduct}
+          onClose={() => setCrossMarketProduct(null)}
+        />
+      )}
+    </div>
+  );
+}

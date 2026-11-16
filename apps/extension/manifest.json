@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "ÜrünBul – Trendyol Pazar Zekası",
+  "version": "1.2.0",
+  "description": "Trendyol'da canlı pazar analizi, tahmini satış hacmi, fiyat geçmişi ve pazar karşılaştırması sunan tarayıcı uzantısı.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ÜrünBul"
+  },
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.trendyol.com/*",
+    "http://localhost:8000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.trendyol.com/*"],
+      "css": ["content.css"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
