@@ -180,7 +180,7 @@ async def get_featured_products(
 
     # Eğer DB henüz boşsa, popüler başlangıç ürünlerini tara ve kaydet
     return await ProductSearchService.search(
-        query="kahve makinesi",
+        query="trend",
         marketplace="all",
         page=1,
         limit=16,

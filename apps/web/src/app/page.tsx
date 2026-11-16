@@ -73,7 +73,7 @@ export default function HomePage() {
   }, []);
 
   // Ürün & Pazar Durumları
-  const [searchQuery, setSearchQuery] = useState("kahve makinesi");
+  const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [trackedProducts, setTrackedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,15 +110,15 @@ export default function HomePage() {
     marketplaceOverride?: string,
     forceRefresh: boolean = false
   ) => {
-    const q = overrideQuery !== undefined ? overrideQuery : searchQuery;
-    if (!q.trim() && !category) return;
+    const rawQ = overrideQuery !== undefined ? overrideQuery : searchQuery;
+    const cat = category !== undefined ? category : currentCategory;
+    const q = rawQ.trim() || (cat && cat !== "Tüm Kategoriler" ? "" : "trend");
 
     setLoading(true);
     setErrorMessage("");
     setCurrentPage(page);
 
     try {
-      const cat = category !== undefined ? category : currentCategory;
       if (category !== undefined) setCurrentCategory(category);
 
       const mp = marketplaceOverride !== undefined ? marketplaceOverride : selectedMarketplace;
@@ -204,7 +204,7 @@ export default function HomePage() {
       console.warn("Öne çıkan ürünler servisten alınamadı, canlı pazar araması başlatılıyor:", e);
     }
     // Sunucu havuzunda hazır öne çıkan ürün yoksa doğrudan gerçek canlı arama yap
-    await handleProductSearch("kahve makinesi");
+    await handleProductSearch("trend");
   };
 
   // 2. Cerebro & Magnet Kelime Analizi

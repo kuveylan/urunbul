@@ -35,6 +35,10 @@ import {
 import ProductMatchmakerWizard from "./ProductMatchmakerWizard";
 import MarketChartsPanel from "./MarketChartsPanel";
 import ProductPassportModal from "./ProductPassportModal";
+import VigoRadarFilterPanel, {
+  VigoRadarFilterCriteria,
+  INITIAL_VIGO_FILTERS,
+} from "./VigoRadarFilterPanel";
 import { apiUrl } from "@/lib/api";
 
 export interface Product {
@@ -130,19 +134,11 @@ export default function BlackBoxView({
     "Oto & Yapı Market",
   ];
 
-  // Gelişmiş Filtreler Akordeon Durumu
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-
   // Görünüm Modu: Otomatik (Mobilde Kart, Masaüstünde Tablo), Kartlar veya Tablo
   const [displayMode, setDisplayMode] = useState<"auto" | "cards" | "table">("auto");
 
-  // Filtre Değerleri
-  const [minPrice, setMinPrice] = useState<string>("");
-  const [maxPrice, setMaxPrice] = useState<string>("");
-  const [minSales, setMinSales] = useState<string>("");
-  const [minRevenue, setMinRevenue] = useState<string>("");
-  const [minReviews, setMinReviews] = useState<string>("");
-  const [minRating, setMinRating] = useState<string>("0");
+  // DataVigo (VigoRadar) Filtre Kriterleri
+  const [appliedFilters, setAppliedFilters] = useState<VigoRadarFilterCriteria>(INITIAL_VIGO_FILTERS);
 
   // Sıralama Durumu
   const [sortField, setSortField] = useState<
@@ -168,16 +164,35 @@ export default function BlackBoxView({
   const [passportProduct, setPassportProduct] = useState<Product | null>(null);
   const [deduplicate, setDeduplicate] = useState(false);
 
-  // Aktif filtre sayısı sayacı
-  const activeFilterCount = [
-    minPrice,
-    maxPrice,
-    minSales,
-    minRevenue,
-    minReviews,
-    minRating !== "0" ? minRating : "",
-    deduplicate ? "dedup" : "",
-  ].filter(Boolean).length;
+  // Aktif filtre sayısı sayacı (VigoRadar Kriterleri)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (appliedFilters.minSales || appliedFilters.maxSales) count++;
+    if (appliedFilters.minPrice || appliedFilters.maxPrice) count++;
+    if (appliedFilters.minRevenue || appliedFilters.maxRevenue) count++;
+    if (appliedFilters.minOpportunity || appliedFilters.maxOpportunity) count++;
+    if (appliedFilters.minSalesReviewRatio || appliedFilters.maxSalesReviewRatio) count++;
+    if (appliedFilters.minReviews || appliedFilters.maxReviews) count++;
+    if (
+      (appliedFilters.minRating && appliedFilters.minRating !== "0") ||
+      (appliedFilters.maxRating && appliedFilters.maxRating !== "5")
+    ) count++;
+    if (appliedFilters.minInCart || appliedFilters.maxInCart) count++;
+    if (appliedFilters.badges && appliedFilters.badges.length > 0) count += appliedFilters.badges.length;
+    if (appliedFilters.minSellers || appliedFilters.maxSellers) count++;
+    if (appliedFilters.hasDiscountOnly) count++;
+    if (appliedFilters.includeBrands || appliedFilters.excludeBrands) count++;
+    if (appliedFilters.includeKeywords || appliedFilters.excludeKeywords) count++;
+    if (
+      appliedFilters.minShippingCost ||
+      appliedFilters.maxShippingCost ||
+      appliedFilters.minDesi ||
+      appliedFilters.maxDesi ||
+      (appliedFilters.shippingMethod && appliedFilters.shippingMethod !== "all")
+    ) count++;
+    if (deduplicate) count++;
+    return count;
+  }, [appliedFilters, deduplicate]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -189,12 +204,7 @@ export default function BlackBoxView({
   };
 
   const handleResetFilters = () => {
-    setMinPrice("");
-    setMaxPrice("");
-    setMinSales("");
-    setMinRevenue("");
-    setMinReviews("");
-    setMinRating("0");
+    setAppliedFilters(INITIAL_VIGO_FILTERS);
     setDeduplicate(false);
   };
 
@@ -219,15 +229,84 @@ export default function BlackBoxView({
     }
   };
 
-  // İstemci tarafı dinamik filtreleme, kopya ayıklama ve sıralama
+  // İstemci tarafı dinamik filtreleme, kopya ayıklama ve sıralama (DataVigo VigoRadar Motoru)
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
-      if (minPrice && p.current_price < parseFloat(minPrice)) return false;
-      if (maxPrice && p.current_price > parseFloat(maxPrice)) return false;
-      if (minSales && p.estimated_monthly_sales < parseInt(minSales, 10)) return false;
-      if (minRevenue && p.estimated_monthly_revenue < parseFloat(minRevenue)) return false;
-      if (minReviews && p.review_count < parseInt(minReviews, 10)) return false;
-      if (minRating && p.rating < parseFloat(minRating)) return false;
+      // 1. Satış & Performans Filtreleri
+      if (appliedFilters.minPrice && p.current_price < parseFloat(appliedFilters.minPrice)) return false;
+      if (appliedFilters.maxPrice && p.current_price > parseFloat(appliedFilters.maxPrice)) return false;
+      if (appliedFilters.minSales && p.estimated_monthly_sales < parseInt(appliedFilters.minSales, 10)) return false;
+      if (appliedFilters.maxSales && p.estimated_monthly_sales > parseInt(appliedFilters.maxSales, 10)) return false;
+      if (appliedFilters.minRevenue && p.estimated_monthly_revenue < parseFloat(appliedFilters.minRevenue)) return false;
+      if (appliedFilters.maxRevenue && p.estimated_monthly_revenue > parseFloat(appliedFilters.maxRevenue)) return false;
+      if (appliedFilters.minOpportunity && p.opportunity_score < parseFloat(appliedFilters.minOpportunity)) return false;
+      if (appliedFilters.maxOpportunity && p.opportunity_score > parseFloat(appliedFilters.maxOpportunity)) return false;
+
+      // Satış/Yorum Oranı
+      if (appliedFilters.minSalesReviewRatio || appliedFilters.maxSalesReviewRatio) {
+        const ratio = p.review_count > 0 ? p.estimated_monthly_sales / p.review_count : p.estimated_monthly_sales;
+        if (appliedFilters.minSalesReviewRatio && ratio < parseFloat(appliedFilters.minSalesReviewRatio)) return false;
+        if (appliedFilters.maxSalesReviewRatio && ratio > parseFloat(appliedFilters.maxSalesReviewRatio)) return false;
+      }
+
+      // 2. Ürün & Yorum Filtreleri
+      if (appliedFilters.minReviews && p.review_count < parseInt(appliedFilters.minReviews, 10)) return false;
+      if (appliedFilters.maxReviews && p.review_count > parseInt(appliedFilters.maxReviews, 10)) return false;
+      if (appliedFilters.minRating && p.rating < parseFloat(appliedFilters.minRating)) return false;
+      if (appliedFilters.maxRating && p.rating > parseFloat(appliedFilters.maxRating)) return false;
+
+      // Sepetteki Kişi Sayısı
+      if (appliedFilters.minInCart && (p.in_cart_count || 0) < parseInt(appliedFilters.minInCart, 10)) return false;
+      if (appliedFilters.maxInCart && (p.in_cart_count || 0) > parseInt(appliedFilters.maxInCart, 10)) return false;
+
+      // Rozet Filtreleri (Best Seller, Flash Deal, Fast Delivery)
+      if (appliedFilters.badges && appliedFilters.badges.length > 0) {
+        for (const badge of appliedFilters.badges) {
+          if (badge === "best_seller") {
+            const isBestSeller = (p.opportunity_score >= 80) || (p.estimated_monthly_sales >= 300) || (p.title?.toLowerCase().includes("çok satan"));
+            if (!isBestSeller) return false;
+          } else if (badge === "flash_deal") {
+            const hasDeal = Boolean(p.original_price && p.original_price > p.current_price);
+            if (!hasDeal) return false;
+          } else if (badge === "fast_delivery") {
+            const isFast = (p.seller_name && p.seller_name.toLowerCase().includes("hızlı")) || (p.opportunity_score > 60);
+            if (!isFast) return false;
+          }
+        }
+      }
+
+      // 3. Rekabet & Marka Filtreleri
+      if (appliedFilters.hasDiscountOnly) {
+        if (!p.original_price || p.original_price <= p.current_price) return false;
+      }
+
+      const pBrand = (p.brand || "").toLowerCase().trim();
+      if (appliedFilters.includeBrands) {
+        const incBrands = appliedFilters.includeBrands.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+        if (incBrands.length > 0 && !incBrands.some((b) => pBrand.includes(b))) return false;
+      }
+      if (appliedFilters.excludeBrands) {
+        const excBrands = appliedFilters.excludeBrands.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+        if (excBrands.length > 0 && excBrands.some((b) => pBrand.includes(b))) return false;
+      }
+
+      // Dahil / Hariç Kelime Filtreleri
+      const pTitle = (p.title || "").toLowerCase();
+      if (appliedFilters.includeKeywords) {
+        const incWords = appliedFilters.includeKeywords.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+        if (incWords.length > 0) {
+          if (appliedFilters.keywordMatchMode === "all") {
+            if (!incWords.every((w) => pTitle.includes(w))) return false;
+          } else {
+            if (!incWords.some((w) => pTitle.includes(w))) return false;
+          }
+        }
+      }
+      if (appliedFilters.excludeKeywords) {
+        const excWords = appliedFilters.excludeKeywords.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+        if (excWords.length > 0 && excWords.some((w) => pTitle.includes(w))) return false;
+      }
+
       return true;
     });
 
@@ -256,12 +335,7 @@ export default function BlackBoxView({
     });
   }, [
     products,
-    minPrice,
-    maxPrice,
-    minSales,
-    minRevenue,
-    minReviews,
-    minRating,
+    appliedFilters,
     sortField,
     sortDirection,
     deduplicate,
@@ -569,14 +643,14 @@ export default function BlackBoxView({
       </div>
 
       {/* 2. Sadeleştirilmiş Ana Arama & Kategori Çubuğu */}
-      <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
+      <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-4 shadow-sm">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
           {/* Ana Arama Inputu */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="Aranacak ürün adı veya kelime (Örn: kahve makinesi, kablosuz kulaklik, termos)..."
+              placeholder="Ürün adı, barkod, ASIN veya model ara… (Örn: kablosuz kulaklık, termos)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && triggerSearch()}
@@ -630,132 +704,15 @@ export default function BlackBoxView({
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Canlı Yenile</span>
           </button>
-
-          {/* Gelişmiş Filtreler Butonu */}
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className={`px-3.5 py-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0 ${
-              showAdvancedFilters || activeFilterCount > 0
-                ? "bg-slate-800 text-blue-400 border-blue-500/40"
-                : "bg-[#0b0f19] text-slate-300 border-slate-700 hover:border-slate-600"
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Gelişmiş Filtreler</span>
-            {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-            {showAdvancedFilters ? (
-              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            )}
-          </button>
         </div>
-
-        {/* 3. Açılır Gelişmiş Filtreler Akordeonu */}
-        {showAdvancedFilters && (
-          <div className="pt-3 border-t border-slate-800/80 animate-fadeIn">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-              {/* Fiyat Min - Max ₺ */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  Fiyat Aralığı (₺)
-                </label>
-                <div className="flex items-center space-x-1">
-                  <input
-                    type="number"
-                    placeholder="Min ₺"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    className="w-1/2 bg-[#0b0f19] border border-slate-700/80 rounded px-2 py-1.5 text-white text-center text-xs focus:outline-none focus:border-blue-500"
-                  />
-                  <span className="text-slate-600">-</span>
-                  <input
-                    type="number"
-                    placeholder="Maks ₺"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    className="w-1/2 bg-[#0b0f19] border border-slate-700/80 rounded px-2 py-1.5 text-white text-center text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Aylık Satış Min */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  Min Aylık Satış (Adet)
-                </label>
-                <input
-                  type="number"
-                  placeholder="Örn: 100"
-                  value={minSales}
-                  onChange={(e) => setMinSales(e.target.value)}
-                  className="w-full bg-[#0b0f19] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {/* Aylık Ciro Min */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  Min Aylık Ciro (₺)
-                </label>
-                <input
-                  type="number"
-                  placeholder="Örn: 50.000"
-                  value={minRevenue}
-                  onChange={(e) => setMinRevenue(e.target.value)}
-                  className="w-full bg-[#0b0f19] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {/* Min Yorum Sayısı */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  Min Yorum Sayısı
-                </label>
-                <input
-                  type="number"
-                  placeholder="Örn: 50"
-                  value={minReviews}
-                  onChange={(e) => setMinReviews(e.target.value)}
-                  className="w-full bg-[#0b0f19] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {/* Müşteri Puanı */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  Müşteri Puanı
-                </label>
-                <select
-                  value={minRating}
-                  onChange={(e) => setMinRating(e.target.value)}
-                  className="w-full bg-[#0b0f19] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                >
-                  <option value="0">Tüm Puanlar</option>
-                  <option value="4.0">★ 4.0 ve Üzeri</option>
-                  <option value="4.5">★ 4.5 ve Üzeri</option>
-                  <option value="4.8">★ 4.8 ve Üzeri</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Filtreleri Sıfırla */}
-            <div className="flex justify-end pt-2 mt-2 border-t border-slate-800/60">
-              <button
-                onClick={handleResetFilters}
-                className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Filtreleri Sıfırla</span>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* 3. DataVigo VigoRadar Filtre Paneli (4 Sekmeli Akordeon, Hızlı Şablonlar & Filtre Kitaplığım) */}
+      <VigoRadarFilterPanel
+        onApplyFilters={(criteria) => setAppliedFilters(criteria)}
+        onResetFilters={handleResetFilters}
+        activeCount={activeFilterCount}
+      />
 
       {/* 4. Fırsat Ürünleri Öner Vitrini (Top 3 Cards) */}
       {showRecommendations && recommendations.length > 0 && (
@@ -1554,15 +1511,34 @@ export default function BlackBoxView({
           )}
         </div>
       ) : (
-        /* Henüz arama yapılmamışsa */
+        /* Henüz arama yapılmamışsa veya filtreleme sonucu ürün kalmamışsa */
         <div className="py-16 text-center bg-[#0f172a] rounded-xl border border-dashed border-slate-800">
           <div className="w-12 h-12 mx-auto rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center mb-3">
             <Package className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-bold text-white">Ürün Taraması Bekleniyor</h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            Yukarıdaki arama çubuğuna bir ürün veya kategori yazarak ya da &quot;Fırsat Ürünleri Öner&quot; butonuna basarak Trendyol canlı ürün verilerini analiz edebilirsiniz.
-          </p>
+          {products.length > 0 && filteredProducts.length === 0 ? (
+            <>
+              <h3 className="text-sm font-bold text-white">Filtrelere Uygun Ürün Bulunamadı</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                Mevcut {products.length} taranmış ürün arasından belirlediğiniz filtre kriterlerine uyan ürün kalmadı. Filtreleri gevşetebilir veya sıfırlayabilirsiniz.
+              </p>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/30"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Filtreleri Sıfırla</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-sm font-bold text-white">Ürün Taraması Bekleniyor</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                Yukarıdaki arama çubuğuna bir ürün veya model yazarak, hazır şablonları seçerek ya da &quot;Pazarı Tara&quot; butonuna basarak canlı pazar verilerini analiz edebilirsiniz.
+              </p>
+            </>
+          )}
         </div>
       )}
 
