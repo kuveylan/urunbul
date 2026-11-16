@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 from app.schemas.review import ReviewInsightsResponse
 from app.services.review_service import ReviewService
+from app.core.security import validate_marketplace_url
 
 router = APIRouter()
 
@@ -20,9 +21,10 @@ async def analyze_product_reviews(
     en çok şikayet edilen noktaları, memnuniyet skorunu ve
     satıcılar için pazar stratejisi önerisini döner.
     """
+    validated_url = validate_marketplace_url(product_url)
     try:
         data = await ReviewService.analyze_product_reviews(
-            product_url=product_url,
+            product_url=validated_url,
             content_id=content_id,
             title=title or "",
             brand=brand,

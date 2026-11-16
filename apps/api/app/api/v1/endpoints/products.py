@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 
+import re
 from app.core.database import get_db
+from app.core.security import validate_marketplace_url, validate_email_format
 from app.models.product import Product, PriceHistory, PriceAlert
 from app.schemas.product import (
     ProductResponse,
@@ -54,8 +56,14 @@ async def inspect_product_endpoint(
     Belirtilen ürünün tüm satıcı tekliflerini, fiyat geçmişini, tahmini aylık cirosunu ve
     gerçek sosyal kanıt (sepet/favori) verilerini döner.
     """
-    target = url or product_id
-    if not target:
+    if url:
+        target = validate_marketplace_url(url)
+    elif product_id:
+        clean_id = product_id.strip()
+        if not re.match(r"^[a-zA-Z0-9_\-\.]+$", clean_id):
+            raise HTTPException(status_code=400, detail="Geçersiz ürün ID formatı.")
+        target = clean_id
+    else:
         raise HTTPException(status_code=400, detail="Lütfen bir Trendyol ürün linki veya ID girin.")
 
     detail = await TrendyolService.get_product_detail(target)
@@ -390,9 +398,18 @@ async def create_price_alert_direct(
     if not product:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
 
+    if alert_in.user_email and not validate_email_format(alert_in.user_email):
+        raise HTTPException(status_code=400, detail="Geçersiz e-posta formatı.")
+
     alert_type = alert_in.alert_type or "price_drop"
     target_price = alert_in.target_price or 0.0
     target_seller = alert_in.target_seller or product.seller_name
+
+    if alert_type == "price_drop":
+        if target_price <= 0:
+            raise HTTPException(status_code=400, detail="Hedef fiyat 0'dan büyük olmalıdır.")
+        if target_price > product.current_price * 1.5:
+            raise HTTPException(status_code=400, detail="Hedef fiyat mevcut fiyattan mantıksız derecede yüksek olamaz.")
 
     if alert_type == "buybox_lost":
         is_triggered = bool(target_seller and product.seller_name and product.seller_name.lower() != target_seller.lower())
@@ -430,9 +447,18 @@ async def create_price_alert(
     if not product:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
 
+    if alert_in.user_email and not validate_email_format(alert_in.user_email):
+        raise HTTPException(status_code=400, detail="Geçersiz e-posta formatı.")
+
     alert_type = alert_in.alert_type or "price_drop"
     target_price = alert_in.target_price or 0.0
     target_seller = alert_in.target_seller or product.seller_name
+
+    if alert_type == "price_drop":
+        if target_price <= 0:
+            raise HTTPException(status_code=400, detail="Hedef fiyat 0'dan büyük olmalıdır.")
+        if target_price > product.current_price * 1.5:
+            raise HTTPException(status_code=400, detail="Hedef fiyat mevcut fiyattan mantıksız derecede yüksek olamaz.")
 
     if alert_type == "buybox_lost":
         is_triggered = bool(target_seller and product.seller_name and product.seller_name.lower() != target_seller.lower())

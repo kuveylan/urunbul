@@ -5,6 +5,7 @@ from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.security import validate_email_format
 from app.models.product import Product, PriceAlert
 from app.schemas.product import PriceAlertCreate
 from app.schemas.consumer import (
@@ -115,11 +116,20 @@ async def create_consumer_price_alert(
     if not alert_in.product_id:
         raise HTTPException(status_code=400, detail="product_id zorunludur")
 
+    if alert_in.user_email and not validate_email_format(alert_in.user_email):
+        raise HTTPException(status_code=400, detail="Geçersiz e-posta formatı.")
+
+    if not alert_in.target_price or alert_in.target_price <= 0:
+        raise HTTPException(status_code=400, detail="Hedef fiyat 0'dan büyük olmalıdır.")
+
     stmt = select(Product).where(Product.id == alert_in.product_id)
     res = await db.execute(stmt)
     product = res.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+
+    if alert_in.target_price > product.current_price * 1.5:
+        raise HTTPException(status_code=400, detail="Hedef fiyat mevcut fiyattan mantıksız derecede yüksek olamaz.")
 
     alert = PriceAlert(
         product_id=product.id,
