@@ -26,6 +26,14 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
     
+    # Esnek Yerel Ağ, Localhost Portları, Chrome Eklentisi ve Canlı Domain Regex'i
+    ALLOWED_ORIGIN_REGEX: str = (
+        r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$"
+        r"|^https://.*\.urunbul\.me$"
+        r"|^https://.*\.github\.io$"
+        r"|^chrome-extension://.*"
+    )
+    
     # Veritabanı (Mutlak yol ile tekil SQLite konfigürasyonu)
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DEFAULT_DB_FILE}")
     

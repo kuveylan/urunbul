@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
@@ -60,15 +61,34 @@ app.add_middleware(SecurityHeadersMiddleware)
 # 2. IP Bazlı Kayan Pencere Hız Sınırlayıcı (Rate Limiter: Genel 60 req/dk, Scraper 15 req/dk)
 app.add_middleware(RateLimitMiddleware)
 
-# 3. CORS Middleware (Yalnızca Pinned Resmi Alan Adları ve Extension)
+# 3. CORS Middleware (Pinned Resmi Alan Adları, Yerel Portlar, LAN IP'leri ve Eklenti)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
-    allow_origin_regex=r"^chrome-extension://.*",
+    allow_origin_regex=settings.ALLOWED_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[
+        "X-Total-Count",
+        "X-Total-Pages",
+        "X-Current-Page",
+        "X-Median-Price",
+        "Retry-After",
+    ],
 )
+
+# Beklenmeyen 500 hatalarında dahi istemcinin CORS engeline takılmasını önleyen global yakalayıcı
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global yakalanmamış sunucu hatası: {exc} (Path: {request.url.path})")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Sunucu içi bir işlem hatası oluştu. Lütfen tekrar deneyin.",
+            "error_code": "INTERNAL_SERVER_ERROR",
+        },
+    )
 
 # Ana API Router'ı bağla
 app.include_router(api_router, prefix=settings.API_V1_STR)

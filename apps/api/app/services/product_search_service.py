@@ -50,56 +50,89 @@ class ProductSearchService:
             if cached and len(cached) >= 4:
                 return cls._sort_products(cached, sort_by)
 
-        # 2. Canlı Scraping Taraması
+        # 2. Canlı Scraping Taraması (Maksimum 8.5 saniye zaman aşımı ile korumalı)
         scraped_items: List[ScrapedProductItem] = []
 
-        if mp == "trendyol":
-            scraper = TrendyolScraper()
-            scraped_items = await scraper.search(query=search_term, page=page, limit=limit)
-        elif mp == "hepsiburada":
-            scraper = HepsiburadaScraper()
-            scraped_items = await scraper.search(query=search_term, page=page, limit=limit)
-        elif mp == "amazon" or mp == "amazon tr":
-            scraper = AmazonTrScraper()
-            scraped_items = await scraper.search(query=search_term, page=page, limit=limit)
-        elif mp == "n11":
-            scraper = N11Scraper()
-            scraped_items = await scraper.search(query=search_term, page=page, limit=limit)
-        else:
-            # "all" (Tüm Pazaryerleri): 4 pazaryeri paralel taranır
-            ty_scraper = TrendyolScraper()
-            hb_scraper = HepsiburadaScraper()
-            az_scraper = AmazonTrScraper()
-            n11_scraper = N11Scraper()
+        try:
+            if mp == "trendyol":
+                scraper = TrendyolScraper()
+                scraped_items = await asyncio.wait_for(
+                    scraper.search(query=search_term, page=page, limit=limit),
+                    timeout=8.5
+                )
+            elif mp == "hepsiburada":
+                scraper = HepsiburadaScraper()
+                scraped_items = await asyncio.wait_for(
+                    scraper.search(query=search_term, page=page, limit=limit),
+                    timeout=8.5
+                )
+            elif mp == "amazon" or mp == "amazon tr":
+                scraper = AmazonTrScraper()
+                scraped_items = await asyncio.wait_for(
+                    scraper.search(query=search_term, page=page, limit=limit),
+                    timeout=8.5
+                )
+            elif mp == "n11":
+                scraper = N11Scraper()
+                scraped_items = await asyncio.wait_for(
+                    scraper.search(query=search_term, page=page, limit=limit),
+                    timeout=8.5
+                )
+            else:
+                # "all" (Tüm Pazaryerleri): 4 pazaryeri paralel taranır
+                ty_scraper = TrendyolScraper()
+                hb_scraper = HepsiburadaScraper()
+                az_scraper = AmazonTrScraper()
+                n11_scraper = N11Scraper()
 
-            sub_limit = max(6, limit // 3)
-            tasks = [
-                ty_scraper.search(query=search_term, page=page, limit=sub_limit),
-                hb_scraper.search(query=search_term, page=page, limit=sub_limit),
-                az_scraper.search(query=search_term, page=page, limit=sub_limit),
-                n11_scraper.search(query=search_term, page=page, limit=sub_limit),
-            ]
-            batch_res = await asyncio.gather(*tasks, return_exceptions=True)
+                sub_limit = max(6, limit // 3)
+                tasks = [
+                    ty_scraper.search(query=search_term, page=page, limit=sub_limit),
+                    hb_scraper.search(query=search_term, page=page, limit=sub_limit),
+                    az_scraper.search(query=search_term, page=page, limit=sub_limit),
+                    n11_scraper.search(query=search_term, page=page, limit=sub_limit),
+                ]
+                batch_res = await asyncio.wait_for(
+                    asyncio.gather(*tasks, return_exceptions=True),
+                    timeout=8.5
+                )
 
-            # Sonuçları dengeli şekilde harmanla (round-robin interleave)
-            valid_lists: List[List[ScrapedProductItem]] = []
-            for r in batch_res:
-                if isinstance(r, list) and r:
-                    valid_lists.append(r)
+                # Sonuçları dengeli şekilde harmanla (round-robin interleave)
+                valid_lists: List[List[ScrapedProductItem]] = []
+                for r in batch_res:
+                    if isinstance(r, list) and r:
+                        valid_lists.append(r)
 
-            max_len = max([len(l) for l in valid_lists], default=0)
-            for i in range(max_len):
-                for l in valid_lists:
-                    if i < len(l):
-                        scraped_items.append(l[i])
+                max_len = max([len(l) for l in valid_lists], default=0)
+                for i in range(max_len):
+                    for l in valid_lists:
+                        if i < len(l):
+                            scraped_items.append(l[i])
+        except (asyncio.TimeoutError, Exception):
+            pass
 
         if not scraped_items and mp != "trendyol":
             # Hedef pazaryerinde sonuç bulunamazsa yedek olarak Trendyol dene
             try:
                 fallback_ty = TrendyolScraper()
-                scraped_items = await fallback_ty.search(query=search_term, page=page, limit=limit)
+                scraped_items = await asyncio.wait_for(
+                    fallback_ty.search(query=search_term, page=page, limit=limit),
+                    timeout=4.0
+                )
             except Exception:
                 pass
+
+        # Eğer canlı kazımadan ürün gelmediyse (veya zaman aşımına uğradıysa), veritabanındaki mevcut ürünleri yedek olarak getir
+        if not scraped_items and db:
+            cached_fallback = await cls._check_cache(
+                search_term=search_term,
+                marketplace=mp,
+                db=db,
+                limit=limit,
+                ignore_expiry=True,
+            )
+            if cached_fallback:
+                return cls._sort_products(cached_fallback, sort_by)
 
         # 3. Metrik Hesaplama & Veritabanı Kaydı
         results: List[Product] = []
@@ -246,16 +279,19 @@ class ProductSearchService:
         marketplace: str,
         db: AsyncSession,
         limit: int = 24,
+        ignore_expiry: bool = False,
     ) -> List[Product]:
-        """15 dakikalık taze önbellek kontrolü"""
+        """15 dakikalık taze önbellek kontrolü (veya yedek modunda son kayıtlı ürünler)"""
         cutoff = datetime.utcnow() - timedelta(minutes=cls.CACHE_DURATION_MINUTES)
         tokens = [t.strip().lower() for t in search_term.split() if len(t.strip()) > 2]
 
         stmt = (
             select(Product)
             .options(selectinload(Product.price_history), selectinload(Product.alerts))
-            .where(Product.updated_at >= cutoff)
         )
+
+        if not ignore_expiry:
+            stmt = stmt.where(Product.updated_at >= cutoff)
 
         if marketplace != "all":
             stmt = stmt.where(Product.marketplace == marketplace)
@@ -266,7 +302,20 @@ class ProductSearchService:
 
         stmt = stmt.limit(limit)
         res = await db.execute(stmt)
-        return list(res.scalars().all())
+        products = list(res.scalars().all())
+
+        # Eğer sorguya özel eşleşme yoksa ve yedek modundaysak, genel yüksek skorlu ürünleri getir
+        if not products and ignore_expiry:
+            fallback_stmt = (
+                select(Product)
+                .options(selectinload(Product.price_history), selectinload(Product.alerts))
+                .order_by(desc(Product.opportunity_score))
+                .limit(limit)
+            )
+            res_fb = await db.execute(fallback_stmt)
+            products = list(res_fb.scalars().all())
+
+        return products
 
     @classmethod
     def _sort_products(cls, products: List[Product], sort_by: str) -> List[Product]:

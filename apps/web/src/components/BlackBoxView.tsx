@@ -78,6 +78,7 @@ interface BlackBoxViewProps {
   onOpenOptimizerModal: (product: Product) => void;
   onOpenReviewModal?: (product: Product) => void;
   onOpenCrossMarketModal?: (product: Product) => void;
+  onLoadFallbackProducts?: () => void;
   errorMessage?: string;
   selectedCategory?: string;
   setSelectedCategory?: (category: string) => void;
@@ -102,6 +103,7 @@ export default function BlackBoxView({
   onOpenOptimizerModal,
   onOpenReviewModal,
   onOpenCrossMarketModal,
+  onLoadFallbackProducts,
   errorMessage,
   selectedCategory: propCategory,
   setSelectedCategory: propSetCategory,
@@ -872,19 +874,47 @@ export default function BlackBoxView({
         </div>
       )}
 
-      {/* Hata Bildirimi & Backend Yeniden Dene Butonu */}
+      {/* Hata Bildirimi & Dayanıklı İyileştirme Kartı */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>{errorMessage}</span>
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs shadow-lg backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-amber-300 text-sm">Bağlantı & Servis Bildirimi</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                  Bulut Sunucu
+                </span>
+              </div>
+              <p className="text-slate-300 text-xs leading-relaxed max-w-2xl">
+                {errorMessage}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => triggerSearch(false)}
-            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors"
-          >
-            Yeniden Dene
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-500/20">
+            {onLoadFallbackProducts && (
+              <button
+                type="button"
+                onClick={onLoadFallbackProducts}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5"
+                title="Sunucu uyanana kadar hazır pazar verilerini inceleyin"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                <span>Örnek Verileri Yükle</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => triggerSearch(false)}
+              disabled={loading}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 active:scale-95 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span>Yeniden Dene</span>
+            </button>
+          </div>
         </div>
       )}
 
