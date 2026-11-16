@@ -12,7 +12,6 @@ import {
   Zap,
   Layers,
   ArrowRight,
-  Eye,
   CheckCircle2,
   X,
   Store,
@@ -22,16 +21,13 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-interface LandingShowcaseViewProps {
-  onOpenDemo?: () => void;
-}
-
-export default function LandingShowcaseView({ onOpenDemo }: LandingShowcaseViewProps) {
-  const { loginWithGoogle, loginWithGitHub, loginDemo, loading, authError, clearAuthError } = useAuth();
+export default function LandingShowcaseView() {
+  const { loginWithGoogle, loginWithGitHub, loading, authError, clearAuthError } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isGoogleConnecting, setIsGoogleConnecting] = useState(false);
   const [isGithubConnecting, setIsGithubConnecting] = useState(false);
+
 
   const handleGoogleLogin = () => {
     setIsGoogleConnecting(true);
@@ -55,13 +51,6 @@ export default function LandingShowcaseView({ onOpenDemo }: LandingShowcaseViewP
         document.documentElement.classList.remove("dark");
         localStorage.setItem("urunbul_theme", "light");
       }
-    }
-  };
-
-  const handleDemoClick = async () => {
-    const success = await loginDemo();
-    if (!success && onOpenDemo) {
-      onOpenDemo();
     }
   };
 
@@ -130,19 +119,6 @@ export default function LandingShowcaseView({ onOpenDemo }: LandingShowcaseViewP
               <div>
                 <strong className="font-bold block mb-1">Giriş Bildirimi:</strong>
                 <p className="leading-relaxed">{authError}</p>
-                <div className="mt-2.5 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      clearAuthError();
-                      await loginDemo();
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5"
-                  >
-                    <span>Şifresiz Hızlı Test Oturumu ile Hemen Başla</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
               </div>
             </div>
             <button
@@ -186,24 +162,14 @@ export default function LandingShowcaseView({ onOpenDemo }: LandingShowcaseViewP
           </p>
 
           {/* CTA Butonları */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-12">
+          <div className="flex items-center justify-center gap-4 max-w-md mx-auto mb-12">
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition transform active:scale-95"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition transform active:scale-95 cursor-pointer"
             >
-              <span>Hemen Ücretsiz Katıl</span>
-              <ChevronRight className="w-5 h-5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDemoClick}
-              disabled={loading}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-base transition flex items-center justify-center gap-2"
-            >
-              <Eye className="w-5 h-5 text-emerald-500" />
-              <span>{loading ? "Giriş Yapılıyor..." : "Canlı Demo İncele"}</span>
+              <span>Hemen Ücretsiz Katıl (Google & GitHub)</span>
+              <ArrowRight className="w-5 h-5" />
             </button>
           </div>
 
@@ -526,20 +492,6 @@ export default function LandingShowcaseView({ onOpenDemo }: LandingShowcaseViewP
                 )}
               </button>
 
-              {/* Hızlı Demo Girişi (Test için) */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await loginDemo();
-                    setIsAuthModalOpen(false);
-                  }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-2 transition"
-                >
-                  <Eye className="w-4 h-4 text-emerald-500" />
-                  <span>Şifresiz Hızlı Test Oturumu Aç</span>
-                </button>
-              </div>
             </div>
 
             <div className="mt-5 text-center">
