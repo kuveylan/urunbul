@@ -25,3 +25,21 @@ export function apiUrl(path: string): string {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${base}${cleanPath}`;
 }
+
+export function getAuthToken(): string | null {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("urunbul_token");
+  }
+  return null;
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  if (token) {
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }
+  return {};
+}
+

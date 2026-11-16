@@ -18,9 +18,14 @@ import ExtensionModal from "@/components/ExtensionModal";
 import ReviewInsightsModal from "@/components/ReviewInsightsModal";
 import DashboardHomeView from "@/components/DashboardHomeView";
 import CrossMarketModal from "@/components/CrossMarketModal";
-import { apiUrl } from "@/lib/api";
+import LandingShowcaseView from "@/components/LandingShowcaseView";
+import AdBanner from "@/components/AdBanner";
+import { useAuth } from "@/context/AuthContext";
+import { apiUrl, getAuthHeaders } from "@/lib/api";
+
 
 export default function HomePage() {
+  const { user, loading: authLoading, decrementSearchQuota, decrementKeywordQuota } = useAuth();
   const [currentView, setCurrentView] = useState<NavView>("dashboard");
 
   // Ürün & Pazar Durumları
@@ -103,8 +108,17 @@ export default function HomePage() {
       const refreshParam = forceRefresh ? "&force_refresh=true" : "";
 
       const res = await fetch(
-        apiUrl(`/api/v1/products/search?q=${searchParam}${catParam}${pageParam}${deepParam}${mpParam}${refreshParam}&sort_by=opportunity`)
+        apiUrl(`/api/v1/products/search?q=${searchParam}${catParam}${pageParam}${deepParam}${mpParam}${refreshParam}&sort_by=opportunity`),
+        {
+          headers: {
+            ...getAuthHeaders(),
+          },
+        }
       );
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Bugünkü 200 arama kotanızı doldurdunuz.");
+      }
       if (!res.ok) throw new Error(`Sunucu hatası (${res.status})`);
 
       // Header'lardan büyük veri istatistiklerini yakala
@@ -115,9 +129,10 @@ export default function HomePage() {
 
       const data = await res.json();
       setProducts(data);
+      decrementSearchQuota();
     } catch (err: any) {
       console.error(err);
-      setErrorMessage("Backend servisine bağlanılamadı veya pazar taraması yanıt vermedi. Lütfen servislerin aktif olduğunu kontrol edin.");
+      setErrorMessage(err.message || "Backend servisine bağlanılamadı veya pazar taraması yanıt vermedi. Lütfen servislerin aktif olduğunu kontrol edin.");
     } finally {
       setLoading(false);
     }
@@ -154,12 +169,21 @@ export default function HomePage() {
         targetMode === "cerebro"
           ? apiUrl(`/api/v1/keywords/cerebro?identifier=${encodeURIComponent(q)}`)
           : apiUrl(`/api/v1/keywords/analyze?q=${encodeURIComponent(q)}`);
-      const res = await fetch(endpoint);
+      const res = await fetch(endpoint, {
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Bugünkü 50 anahtar kelime analiz kotanızı doldurdunuz.");
+      }
       if (!res.ok) throw new Error("Kelime analizi başarısız oldu");
       const data = await res.json();
       setKeywordData(data);
-    } catch (err) {
-      setErrorMessage("Anahtar kelime analizi sırasında bağlantı hatası oluştu.");
+      decrementKeywordQuota();
+    } catch (err: any) {
+      setErrorMessage(err.message || "Anahtar kelime analizi sırasında bağlantı hatası oluştu.");
     } finally {
       setLoading(false);
     }
@@ -217,11 +241,13 @@ export default function HomePage() {
     }
   };
 
-  // İlk yüklemede popüler arama ve takip listesini getir
+  // Yalnızca oturum açmış kullanıcılar için başlangıç verilerini çek
   useEffect(() => {
-    fetchTrackedProducts();
-    fetchInitialProducts();
-  }, []);
+    if (user) {
+      fetchTrackedProducts();
+      fetchInitialProducts();
+    }
+  }, [user]);
 
   // SEO Schema.org JSON-LD
   const schemaStructuredData = useMemo(() => {
@@ -256,6 +282,23 @@ export default function HomePage() {
       })),
     };
   }, [products]);
+
+  // Oturum durumu yüklenirken bekleme ekranı
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#070b14] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">ÜrünBul Yükleniyor...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Giriş yapmamış anonim ziyaretçiler için Tanıtım (Showcase) Sayfası
+  if (!user) {
+    return <LandingShowcaseView />;
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900 transition-colors">
@@ -299,6 +342,8 @@ export default function HomePage() {
         {/* Dinamik Görünüm İçeriği */}
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto scrollbar-thin">
           <div className="max-w-7xl mx-auto">
+            {/* Üst Sponsor / Reklam Bannerı */}
+            <AdBanner slot="top_leaderboard" className="mb-4" />
             {/* 0. Kontrol Paneli (Ana Sayfa) */}
             {currentView === "dashboard" && (
               <DashboardHomeView

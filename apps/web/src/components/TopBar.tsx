@@ -22,6 +22,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { NavView } from "./Sidebar";
+import { useAuth } from "@/context/AuthContext";
+
 
 interface TopBarProps {
   currentView: NavView;
@@ -52,6 +54,7 @@ export default function TopBar({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState<"TR" | "EN">("TR");
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const { user, quota, logout } = useAuth();
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const marketplaceRef = useRef<HTMLDivElement>(null);
@@ -260,6 +263,16 @@ export default function TopBar({
           )}
         </button>
 
+        {/* Canlı Kalan Arama Kotası Rozeti */}
+        {user && (
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-slate-700 dark:text-slate-200">
+              Arama: <strong className="text-emerald-600 dark:text-emerald-400">{quota?.daily_searches_remaining ?? 200}</strong>/200
+            </span>
+          </div>
+        )}
+
         {/* Doğrudan 1-Tıkla Tema Değiştirici (Aydınlık / Karanlık Mod) */}
         <button
           type="button"
@@ -282,26 +295,30 @@ export default function TopBar({
           )}
         </button>
 
-        {/* Tıklanabilir Kullanıcı Avatarı (UK) & Açılır Menü */}
+        {/* Tıklanabilir Kullanıcı Avatarı & Açılır Menü */}
         <div className="relative pl-1.5 border-l border-slate-300 dark:border-slate-700" ref={userMenuRef}>
           <button
             type="button"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 hover:brightness-110 text-white font-black text-xs flex items-center justify-center border border-emerald-400 shadow-sm transition group cursor-pointer"
+            className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-emerald-600 to-teal-500 hover:brightness-110 text-white font-black text-xs flex items-center justify-center border border-emerald-400 shadow-sm transition group cursor-pointer"
             title="Kullanıcı & Görünüm Menüsü"
           >
-            UK
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+              <span>{user?.name ? user.name.slice(0, 2).toUpperCase() : "ÜB"}</span>
+            )}
           </button>
 
           {isUserMenuOpen && (
             <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-2 text-xs text-slate-700 dark:text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-150">
               {/* Profil Başlığı */}
               <div className="px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-700/80">
-                <div className="font-bold text-slate-900 dark:text-white text-sm">Ulubey Kütüphane</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">ulubey@kutuphane.com</div>
+                <div className="font-bold text-slate-900 dark:text-white text-sm">{user?.name || "E-Ticaret Üyesi"}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{user?.email || "uye@urunbul.me"}</div>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                   <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                  {currentLang === "EN" ? "Unlimited E-Commerce Access" : "Limitsiz E-Ticaret Erişimi"}
+                  <span>{currentLang === "EN" ? "Daily Quota: 200 Searches" : "Günlük 200 Arama Kotası"}</span>
                 </div>
               </div>
 
@@ -386,8 +403,9 @@ export default function TopBar({
                   type="button"
                   onClick={() => {
                     setIsUserMenuOpen(false);
+                    logout();
                   }}
-                  className="w-full text-left px-3.5 py-2 hover:bg-rose-500/10 text-rose-400 flex items-center gap-2.5 font-medium transition"
+                  className="w-full text-left px-3.5 py-2 hover:bg-rose-500/10 text-rose-400 flex items-center gap-2.5 font-medium transition cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 text-rose-400" />
                   <span>{currentLang === "EN" ? "Log Out" : "Oturumu Kapat"}</span>

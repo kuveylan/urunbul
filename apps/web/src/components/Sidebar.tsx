@@ -20,6 +20,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
+import AdBanner from "./AdBanner";
+
 
 export type NavView =
   | "dashboard"
@@ -293,6 +295,9 @@ export default function Sidebar({
               </div>
         </nav>
       </div>
+
+      {/* Sponsor / Reklam Alanı */}
+      <AdBanner slot="sidebar_bottom" />
 
       {/* Plan Göstergesi (Limitsiz Beta Açık Sürüm) */}
       <div className="p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#070b14] transition-colors">

@@ -1,7 +1,20 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import products, compare, keywords, sellers, calculator, optimizer, notifications, reviews
+from app.api.v1.endpoints import (
+    auth,
+    products,
+    compare,
+    keywords,
+    sellers,
+    calculator,
+    optimizer,
+    notifications,
+    reviews,
+)
 
 api_router = APIRouter()
+
+# Kimlik Doğrulama & Kullanıcı Kotaları (Google & GitHub OAuth)
+api_router.include_router(auth.router, prefix="/auth", tags=["Kimlik Doğrulama & Üyelik"])
 
 # Satıcı Analiz & Ürün Keşif Araçları
 api_router.include_router(products.router, prefix="/products", tags=["Satıcı Araçları - Ürün Analizi"])

@@ -6,6 +6,11 @@ from app.schemas.product import (
     ProductComparisonResponse,
     PriceComparisonItem,
 )
+from app.schemas.user import (
+    UserResponse,
+    UserQuota,
+    UserMeResponse,
+)
 
 __all__ = [
     "ProductCreate",
@@ -14,4 +19,7 @@ __all__ = [
     "PriceHistoryItem",
     "ProductComparisonResponse",
     "PriceComparisonItem",
+    "UserResponse",
+    "UserQuota",
+    "UserMeResponse",
 ]
