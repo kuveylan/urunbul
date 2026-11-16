@@ -81,7 +81,9 @@ app.add_middleware(
 # Beklenmeyen 500 hatalarında dahi istemcinin CORS engeline takılmasını önleyen global yakalayıcı
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global yakalanmamış sunucu hatası: {exc} (Path: {request.url.path})")
+    import traceback
+    tb = traceback.format_exc()
+    logger.error(f"Global yakalanmamış sunucu hatası: {exc}\n{tb} (Path: {request.url.path})")
     origin = request.headers.get("origin")
     headers = {
         "Access-Control-Allow-Origin": origin if origin else "*",
@@ -92,8 +94,9 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={
-            "detail": "Sunucu içi bir işlem hatası oluştu. Lütfen tekrar deneyin.",
+            "detail": f"Sunucu içi işlem hatası: {str(exc)}",
             "error_code": "INTERNAL_SERVER_ERROR",
+            "error_class": exc.__class__.__name__,
         },
         headers=headers,
     )

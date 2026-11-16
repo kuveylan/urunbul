@@ -159,7 +159,7 @@ class ProductSearchService:
                 try:
                     stmt = (
                         select(Product)
-                        .options(selectinload(Product.price_history), selectinload(Product.alerts))
+                        .options(selectinload(Product.price_history))
                         .where(
                             Product.marketplace == item.marketplace,
                             Product.external_id == str(item.external_id),
@@ -292,7 +292,7 @@ class ProductSearchService:
 
         stmt = (
             select(Product)
-            .options(selectinload(Product.price_history), selectinload(Product.alerts))
+            .options(selectinload(Product.price_history))
         )
 
         if not ignore_expiry:
@@ -313,7 +313,7 @@ class ProductSearchService:
         if not products and ignore_expiry:
             fallback_stmt = (
                 select(Product)
-                .options(selectinload(Product.price_history), selectinload(Product.alerts))
+                .options(selectinload(Product.price_history))
                 .order_by(desc(Product.opportunity_score))
                 .limit(limit)
             )

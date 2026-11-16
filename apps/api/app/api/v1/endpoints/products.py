@@ -167,7 +167,7 @@ async def get_featured_products(
     """
     stmt = (
         select(Product)
-        .options(selectinload(Product.price_history), selectinload(Product.alerts))
+        .options(selectinload(Product.price_history))
         .order_by(desc(Product.opportunity_score))
         .limit(16)
     )
