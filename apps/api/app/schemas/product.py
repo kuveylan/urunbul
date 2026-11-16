@@ -1,13 +1,13 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List, Any
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class PriceHistoryItem(BaseModel):
-    id: int
-    price: float
+    id: Optional[int] = None
+    price: float = 0.0
     seller_name: Optional[str] = None
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,7 +42,7 @@ class ProductBase(BaseModel):
     category_id: Optional[str] = None
     url: str
     image_url: Optional[str] = None
-    current_price: float
+    current_price: float = 0.0
     original_price: Optional[float] = None
     currency: str = "TRY"
     seller_name: Optional[str] = None
@@ -51,13 +51,33 @@ class ProductBase(BaseModel):
     review_count: int = 0
     favorite_count: int = 0
 
+    @field_validator("current_price", "rating", mode="before")
+    @classmethod
+    def coerce_float(cls, v: Any) -> float:
+        if v is None:
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 0.0
+
+    @field_validator("review_count", "favorite_count", mode="before")
+    @classmethod
+    def coerce_int(cls, v: Any) -> int:
+        if v is None:
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
+
 
 class ProductCreate(ProductBase):
     pass
 
 
 class ProductResponse(ProductBase):
-    id: int
+    id: Optional[int] = 0
     estimated_monthly_sales: int = 0
     estimated_monthly_revenue: float = 0.0
     opportunity_score: float = 0.0
@@ -66,10 +86,48 @@ class ProductResponse(ProductBase):
     economics_score: float = 0.0
     in_cart_count: int = 0
     is_tracked: bool = False
-    created_at: datetime
-    updated_at: datetime
-    price_history: List[PriceHistoryItem] = []
-    alerts: List[PriceAlertResponse] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    price_history: List[PriceHistoryItem] = Field(default_factory=list)
+
+    @field_validator(
+        "opportunity_score",
+        "demand_score",
+        "competition_score",
+        "economics_score",
+        "estimated_monthly_revenue",
+        mode="before",
+    )
+    @classmethod
+    def coerce_metrics_float(cls, v: Any) -> float:
+        if v is None:
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 0.0
+
+    @field_validator("estimated_monthly_sales", "in_cart_count", mode="before")
+    @classmethod
+    def coerce_metrics_int(cls, v: Any) -> int:
+        if v is None:
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
+
+    @field_validator("is_tracked", mode="before")
+    @classmethod
+    def coerce_bool(cls, v: Any) -> bool:
+        return bool(v) if v is not None else False
+
+    @field_validator("price_history", mode="before")
+    @classmethod
+    def coerce_price_history(cls, v: Any) -> List[Any]:
+        if v is None or not isinstance(v, (list, tuple)):
+            return []
+        return list(v)
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -82,12 +82,20 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global yakalanmamış sunucu hatası: {exc} (Path: {request.url.path})")
+    origin = request.headers.get("origin")
+    headers = {
+        "Access-Control-Allow-Origin": origin if origin else "*",
+        "Access-Control-Allow-Credentials": "true" if origin else "false",
+        "Access-Control-Allow-Methods": "*",
+        "Access-Control-Allow-Headers": "*",
+    }
     return JSONResponse(
         status_code=500,
         content={
             "detail": "Sunucu içi bir işlem hatası oluştu. Lütfen tekrar deneyin.",
             "error_code": "INTERNAL_SERVER_ERROR",
         },
+        headers=headers,
     )
 
 # Ana API Router'ı bağla
@@ -95,6 +103,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Sistem"])
+@app.get("/api/v1/health", tags=["Sistem"])
 async def health_check():
     """Sistem sağlık kontrolü endpoint'i."""
     return {

@@ -149,7 +149,9 @@ export async function resilientFetch<T = any>(
       }
 
       if (!res.ok) {
-        throw new Error(`Sunucu hatası (${res.status})`);
+        const errJson = await res.json().catch(() => ({}));
+        const detail = errJson.detail || errJson.message || `Sunucu hatası (${res.status})`;
+        throw new Error(detail);
       }
 
       const data = await res.json();

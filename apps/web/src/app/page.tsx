@@ -24,7 +24,6 @@ import BottomNavigationBar from "@/components/BottomNavigationBar";
 import AdBanner from "@/components/AdBanner";
 import { useAuth } from "@/context/AuthContext";
 import { apiUrl, getAuthHeaders, resilientFetch } from "@/lib/api";
-import { FALLBACK_PRODUCTS } from "@/data/fallbackProducts";
 
 const VALID_VIEWS: NavView[] = [
   "dashboard",
@@ -188,21 +187,13 @@ export default function HomePage() {
     }
   };
 
-  // Sunucu uykudayken veya ağ yokken hazır demo pazar verilerini anında yükle
-  const handleLoadFallbackProducts = () => {
-    setProducts(FALLBACK_PRODUCTS);
-    setTotalScannedVolume(14850);
-    setTotalPages(412);
-    setErrorMessage("");
-  };
-
   // Sayfa ilk açıldığında gecikmesiz öne çıkan fırsat ürünlerini getir
   const fetchInitialProducts = async () => {
     setLoading(true);
     try {
       const { data } = await resilientFetch<Product[]>(apiUrl("/api/v1/products/featured"), {
-        timeoutMs: 5000,
-        retries: 0,
+        timeoutMs: 8000,
+        retries: 1,
       });
       if (data && data.length > 0) {
         setProducts(data);
@@ -210,11 +201,10 @@ export default function HomePage() {
         return;
       }
     } catch (e) {
-      console.warn("Öne çıkan ürünler canlı servisten alınamadı, yerel önbellek havuzu yükleniyor:", e);
+      console.warn("Öne çıkan ürünler servisten alınamadı, canlı pazar araması başlatılıyor:", e);
     }
-    // Sunucu uykudaysa veya DB henüz boşsa kullanıcıyı bekletmeden hazır havuzu göster
-    setProducts(FALLBACK_PRODUCTS);
-    setLoading(false);
+    // Sunucu havuzunda hazır öne çıkan ürün yoksa doğrudan gerçek canlı arama yap
+    await handleProductSearch("kahve makinesi");
   };
 
   // 2. Cerebro & Magnet Kelime Analizi
@@ -439,7 +429,6 @@ export default function HomePage() {
                 onOpenOptimizerModal={(p) => setOptimizeProduct(p)}
                 onOpenReviewModal={(p) => setSelectedProductForReviewModal(p)}
                 onOpenCrossMarketModal={(p) => setCrossMarketProduct(p)}
-                onLoadFallbackProducts={handleLoadFallbackProducts}
                 errorMessage={errorMessage}
                 totalScannedVolume={totalScannedVolume}
                 currentPage={currentPage}

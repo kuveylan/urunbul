@@ -99,22 +99,18 @@ export default function ProductPassportModal({
     setIsMounted(true);
   }, []);
 
-  // Fiyat Geçmişi Mock / Gerçek Verisi
+  // Gerçek Fiyat Geçmişi Verisi (Sıfır Sahte Veri Politikası)
   const chartData = useMemo(() => {
-    if (product.price_history && product.price_history.length > 2) {
-      return product.price_history.map((h: any, idx: number) => ({
+    if (product.price_history && product.price_history.length > 0) {
+      return product.price_history.map((h: any) => ({
         date: safeFormatDate(h.timestamp, { month: "short", day: "numeric" }),
         price: h.price,
       }));
     }
-    // Otomatik 30 günlük simülasyon geçmişi
+    // Geçmiş kaydı henüz oluşmamış yeni ürünler için sadece tespit edilen gerçek güncel fiyatı göster
     const cur = product.current_price;
-    const orig = product.original_price || Math.round(cur * 1.18);
     return [
-      { date: "30 gün önce", price: orig },
-      { date: "20 gün önce", price: Math.round((orig + cur) / 2) },
-      { date: "12 gün önce", price: Math.round(cur * 1.08) },
-      { date: "5 gün önce", price: Math.round(cur * 1.02) },
+      { date: "İlk Tespit", price: cur },
       { date: "Bugün", price: cur },
     ];
   }, [product]);

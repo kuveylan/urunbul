@@ -303,7 +303,7 @@ async def search_products(
     sort_by: Optional[str] = Query("opportunity", description="Sıralama: opportunity, sales, best_seller, price_asc, price_desc, rating"),
     deep_scan: bool = Query(False, description="Derin Tarama (Çoklu sayfa, 70-100 ürün)"),
     force_refresh: bool = Query(False, description="15 dakikalık önbelleği bypass edip canlı kazı"),
-    response: Response = Response(),
+    response: Response = None,
     db: AsyncSession = Depends(get_db),
 ):
     """

@@ -78,7 +78,6 @@ interface BlackBoxViewProps {
   onOpenOptimizerModal: (product: Product) => void;
   onOpenReviewModal?: (product: Product) => void;
   onOpenCrossMarketModal?: (product: Product) => void;
-  onLoadFallbackProducts?: () => void;
   errorMessage?: string;
   selectedCategory?: string;
   setSelectedCategory?: (category: string) => void;
@@ -103,7 +102,6 @@ export default function BlackBoxView({
   onOpenOptimizerModal,
   onOpenReviewModal,
   onOpenCrossMarketModal,
-  onLoadFallbackProducts,
   errorMessage,
   selectedCategory: propCategory,
   setSelectedCategory: propSetCategory,
@@ -894,17 +892,6 @@ export default function BlackBoxView({
             </div>
           </div>
           <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-500/20">
-            {onLoadFallbackProducts && (
-              <button
-                type="button"
-                onClick={onLoadFallbackProducts}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5"
-                title="Sunucu uyanana kadar hazır pazar verilerini inceleyin"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                <span>Örnek Verileri Yükle</span>
-              </button>
-            )}
             <button
               type="button"
               onClick={() => triggerSearch(false)}

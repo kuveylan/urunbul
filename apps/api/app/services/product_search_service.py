@@ -251,9 +251,11 @@ class ProductSearchService:
                     image_url=item.image_url,
                     current_price=item.current_price,
                     original_price=item.original_price,
+                    currency=item.currency or "TRY",
                     seller_name=item.seller_name,
                     rating=item.rating,
                     review_count=item.review_count,
+                    favorite_count=0,
                     estimated_monthly_sales=monthly_sales,
                     estimated_monthly_revenue=monthly_revenue,
                     opportunity_score=opp_score,
@@ -261,6 +263,9 @@ class ProductSearchService:
                     competition_score=metrics["competition_score"],
                     economics_score=metrics["economics_score"],
                     in_cart_count=in_cart,
+                    is_tracked=False,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow(),
                 )
                 results.append(p)
 
