@@ -126,7 +126,7 @@ export default function FrankensteinView({ onSendToScribbles }: FrankensteinView
               Frankenstein Anahtar Kelime İşlemcisi
             </h1>
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-              Helium 10 Modeli
+              Profesyonel Kelime Filtreleme Modeli
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">

@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import AdBanner from "./AdBanner";
+import AppBrandLogo, { AppLogoIcon } from "./AppBrandLogo";
 
+export { AppLogoIcon };
 
 export type NavView =
   | "dashboard"
@@ -34,29 +36,6 @@ export type NavView =
   | "frankenstein"
   | "profits"
   | "watchlist";
-
-// Alışveriş ve Kârı Destekleyen Sade & Minimalist Vektörel Logo
-export function AppLogoIcon({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      {/* Alışveriş Çantası Konturu */}
-      <path d="M6 8h12l1.2 11.5A2 2 0 0 1 17.2 22H6.8a2 2 0 0 1-2-2.5L6 8z" />
-      {/* Çanta Tutma Sapı */}
-      <path d="M9 8V5a3 3 0 0 1 6 0v3" />
-      {/* Kâr ve Büyüme Trend Oku */}
-      <path d="M8.5 15.5l2.8-2.8 2 2 3.7-3.7" />
-      <path d="M14.5 11h2.5v2.5" />
-    </svg>
-  );
-}
 
 interface SidebarProps {
   currentView: NavView;
@@ -83,9 +62,7 @@ export default function Sidebar({
           className="w-full text-left h-16 border-b border-slate-200 dark:border-slate-800/80 px-4 flex items-center justify-between bg-white dark:bg-[#0b0f19] hover:bg-slate-50 dark:hover:bg-slate-900/60 transition group cursor-pointer"
         >
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">
-              <AppLogoIcon className="w-4.5 h-4.5 text-white stroke-[2.3]" />
-            </div>
+            <AppBrandLogo size="md" showText={false} />
             <div>
               <div className="font-black text-sm text-slate-900 dark:text-white tracking-wider flex items-center">
                 <span>ÜrünBul</span>
@@ -114,11 +91,6 @@ export default function Sidebar({
                     <Home className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                     <span>{t.menuHome}</span>
                   </span>
-                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
-                    currentView === "dashboard" ? "bg-emerald-800 text-white" : "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/60"
-                  }`}>
-                    {lang === "EN" ? "HUB" : "ÖZET"}
-                  </span>
                 </button>
               </div>
 
@@ -126,7 +98,6 @@ export default function Sidebar({
               <div>
                 <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>{lang === "EN" ? "Product & Market Radar" : "Ürün & Pazar Radarı"}</span>
-                  <span className="text-[9px] text-slate-600 font-normal">Radar</span>
                 </div>
                 <div className="space-y-0.5">
                   <button
@@ -140,11 +111,6 @@ export default function Sidebar({
                     <span className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-emerald-400" />
                       <span>{t.menuBlackbox}</span>
-                    </span>
-                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
-                      currentView === "blackbox" ? "bg-emerald-800 text-white" : "bg-slate-800 text-slate-400"
-                    }`}>
-                      RADAR
                     </span>
                   </button>
 
@@ -182,7 +148,6 @@ export default function Sidebar({
               <div>
                 <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>{lang === "EN" ? "Keywords & Traffic" : "Kelime & Trafik Analizi"}</span>
-                  <span className="text-[9px] text-slate-600 font-normal">SEO</span>
                 </div>
                 <div className="space-y-0.5">
                   <button
@@ -219,7 +184,6 @@ export default function Sidebar({
               <div>
                 <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>{lang === "EN" ? "Listing & Content" : "Listeleme & İçerik"}</span>
-                  <span className="text-[9px] text-slate-600 font-normal">Content</span>
                 </div>
                 <div className="space-y-0.5">
                   <button
@@ -256,7 +220,6 @@ export default function Sidebar({
               <div>
                 <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>{lang === "EN" ? "Finance & Profit" : "Finans & Operasyon"}</span>
-                  <span className="text-[9px] text-emerald-500 font-bold">₺</span>
                 </div>
                 <div className="space-y-0.5">
                   <button

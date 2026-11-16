@@ -294,7 +294,7 @@ export default function CerebroMagnetView({
                 Pazar SEO Zekası
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
-                Helium 10 Magnet & Cerebro Motoru
+                Gelişmiş Magnet & Cerebro Kelime Motoru
               </span>
             </div>
             <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">

@@ -19,14 +19,56 @@ import ReviewInsightsModal from "@/components/ReviewInsightsModal";
 import DashboardHomeView from "@/components/DashboardHomeView";
 import CrossMarketModal from "@/components/CrossMarketModal";
 import LandingShowcaseView from "@/components/LandingShowcaseView";
+import LegalTermsModal from "@/components/LegalTermsModal";
 import AdBanner from "@/components/AdBanner";
 import { useAuth } from "@/context/AuthContext";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
 
+const VALID_VIEWS: NavView[] = [
+  "dashboard",
+  "blackbox",
+  "trendster",
+  "storefront",
+  "cerebro",
+  "magnet",
+  "scribbles",
+  "frankenstein",
+  "profits",
+  "watchlist",
+];
 
 export default function HomePage() {
   const { user, loading: authLoading, decrementSearchQuota, decrementKeywordQuota } = useAuth();
   const [currentView, setCurrentView] = useState<NavView>("dashboard");
+  const [legalModalTab, setLegalModalTab] = useState<"terms" | "privacy" | null>(null);
+
+  // Zararsız URL Hash Gezinme Fonksiyonu
+  const navigateToView = (view: NavView, pushHistory = true) => {
+    setCurrentView(view);
+    if (typeof window !== "undefined") {
+      if (pushHistory) {
+        window.history.pushState(null, "", `#${view}`);
+      }
+    }
+    if (view === "watchlist") fetchTrackedProducts();
+  };
+
+  // İlk yüklemede ve tarayıcı İleri/Geri tuşlarında URL Hash senkronizasyonu
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleHashSync = () => {
+      const hash = window.location.hash.replace("#", "") as NavView;
+      if (VALID_VIEWS.includes(hash)) {
+        setCurrentView(hash);
+        if (hash === "watchlist") fetchTrackedProducts();
+      }
+    };
+
+    handleHashSync();
+    window.addEventListener("hashchange", handleHashSync);
+    return () => window.removeEventListener("hashchange", handleHashSync);
+  }, []);
 
   // Ürün & Pazar Durumları
   const [searchQuery, setSearchQuery] = useState("kahve makinesi");
@@ -310,13 +352,10 @@ export default function HomePage() {
         />
       )}
 
-      {/* Helium 10 Sol Menü Ağacı (Sidebar) */}
+      {/* Sol Menü Ağacı (Sidebar) */}
       <Sidebar
         currentView={currentView}
-        onSelectView={(v) => {
-          setCurrentView(v);
-          if (v === "watchlist") fetchTrackedProducts();
-        }}
+        onSelectView={(v) => navigateToView(v)}
         trackedCount={trackedProducts.length}
         unreadAlertCount={2}
       />
@@ -331,11 +370,12 @@ export default function HomePage() {
             setSelectedMarketplace(mp);
             handleProductSearch(searchQuery, currentCategory, 1, isDeepScan, mp);
           }}
-          onNavigate={(v) => setCurrentView(v)}
+          onNavigate={(v) => navigateToView(v)}
           onOpenNotifications={() => setIsNotificationOpen(true)}
-          onOpenCalculator={() => setCurrentView("profits")}
+          onOpenCalculator={() => navigateToView("profits")}
           onOpenOptimizer={() => setIsOptimizerOpen(true)}
           onOpenExtensionModal={() => setIsExtensionModalOpen(true)}
+          onOpenLegal={(tab) => setLegalModalTab(tab || "terms")}
           unreadCount={2}
         />
 
@@ -347,7 +387,7 @@ export default function HomePage() {
             {/* 0. Kontrol Paneli (Ana Sayfa) */}
             {currentView === "dashboard" && (
               <DashboardHomeView
-                onSelectView={(v) => setCurrentView(v)}
+                onSelectView={(v) => navigateToView(v)}
                 onSearch={(q) => {
                   setSearchQuery(q);
                   handleProductSearch(q);
@@ -407,13 +447,13 @@ export default function HomePage() {
                 loading={loading}
                 onSearch={(q) => handleKeywordSearch(q)}
                 onSwitchMode={(newMode) => {
-                  setCurrentView(newMode);
+                  navigateToView(newMode);
                   const q = keywordData?.identifier || keywordData?.query || searchQuery;
                   if (q) handleKeywordSearch(q, newMode);
                 }}
                 onExportToScribbles={(kws) => {
                   setScribblesKeywords(kws);
-                  setCurrentView("scribbles");
+                  navigateToView("scribbles");
                 }}
                 errorMessage={errorMessage}
               />
@@ -522,6 +562,13 @@ export default function HomePage() {
           onClose={() => setCrossMarketProduct(null)}
         />
       )}
+
+      {/* Hukuki Hizmet Şartları & Gizlilik Politikası Modalı */}
+      <LegalTermsModal
+        isOpen={!!legalModalTab}
+        initialTab={legalModalTab || "terms"}
+        onClose={() => setLegalModalTab(null)}
+      />
     </div>
   );
 }

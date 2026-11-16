@@ -173,11 +173,7 @@ export default function ProductMatchmakerWizard({
   };
 
   return (
-    <div className="w-full mb-8 rounded-2xl bg-white dark:bg-gradient-to-b dark:from-[#0f172a] dark:via-[#090d16] dark:to-[#0b101e] border border-blue-200 dark:border-blue-500/20 shadow-xl dark:shadow-2xl p-5 sm:p-7 relative overflow-hidden">
-      {/* Arka plan ışık efektleri */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="w-full mb-8 rounded-2xl bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 shadow-sm p-5 sm:p-7 relative overflow-hidden transition-colors">
       {/* Pro Modal */}
       <ProMembershipModal
         isOpen={isVipModalOpen}

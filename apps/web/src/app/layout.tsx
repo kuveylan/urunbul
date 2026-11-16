@@ -26,10 +26,10 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "ÜrünBul Teknoloji" }],
   openGraph: {
-    title: "ÜrünBul – Türkiye Pazaryeri Satıcı Analizi & Akıllı Fiyat Karşılaştırma",
+    title: "ÜrünBul – Türkiye Pazaryerleri Satıcı Analizi & Akıllı Fiyat Karşılaştırma",
     description:
       "Gerçek zamanlı pazar verileri, tahmini ciro/satış analizleri ve en ucuz satıcı teklif karşılaştırması tek platformda.",
-    url: "https://urunbul.app",
+    url: "https://urunbul.me",
     siteName: "ÜrünBul",
     locale: "tr_TR",
     type: "website",

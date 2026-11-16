@@ -205,15 +205,13 @@ export default function DashboardHomeView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-12">
       {/* 1. ÜST KULLANICI KARŞILAMA VE ÜYELİK DURUM ÇUBUĞU */}
-      <div className="rounded-2xl bg-gradient-to-r from-[#0d1527] via-[#0f172a] to-[#0a1122] border border-blue-500/20 p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-80 bg-gradient-to-l from-blue-600/10 to-transparent pointer-events-none" />
-
+      <div className="rounded-2xl bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm relative overflow-hidden transition-colors">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               {/* Dinamik Sağlayıcı Rozeti */}
               {user?.provider === "google" ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
                   <svg className="w-3 h-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -223,46 +221,46 @@ export default function DashboardHomeView({
                   Google Onaylı Üye
                 </span>
               ) : user?.provider === "github" ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/15 text-slate-300 border border-slate-500/30">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
                   <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
                     <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                   </svg>
                   GitHub Onaylı Üye
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   PRO Kurumsal Üyelik
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                 Trendyol Canlı Pazar Radarı Aktif
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Hoş Geldiniz, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-200 to-white">{user?.name || "E-Ticaret Satıcısı"}</span> 👋
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Hoş Geldiniz, <span className="text-emerald-600 dark:text-emerald-400">{user?.name || "E-Ticaret Satıcısı"}</span> 👋
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
               Trendyol pazarındaki karlı ürünleri, rakip mağazaların ciro dağılımını ve arbitraj fırsatlarını tek ekrandan yönetin.
             </p>
           </div>
 
           {/* Hızlı Kota & Üyelik Kartı */}
-          <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-800 p-3 rounded-xl shrink-0">
-            <div className="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
-              <Zap className="w-5 h-5 text-blue-400" />
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
+              <Zap className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white">Günlük Analiz & API Kotası</span>
-                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-slate-900 dark:text-white">Günlük Analiz & API Kotası</span>
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                   {quota?.daily_searches_remaining ?? 200} / {quota?.daily_searches_limit ?? 200}
                 </span>
               </div>
-              <div className="w-48 bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+              <div className="w-48 bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-blue-500 to-emerald-400 h-full transition-all duration-300"
+                  className="bg-emerald-500 h-full transition-all duration-300"
                   style={{
                     width: `${Math.round(((quota?.daily_searches_remaining ?? 200) / (quota?.daily_searches_limit ?? 200)) * 100)}%`,
                   }}
@@ -270,55 +268,55 @@ export default function DashboardHomeView({
               </div>
               <div className="text-[10px] text-slate-500 mt-1 flex justify-between">
                 <span>{quota?.daily_searches_used ?? 0} sorgu kullanıldı</span>
-                <span className="text-slate-400">Yenilenme: Gece 00:00</span>
+                <span className="text-slate-500 dark:text-slate-400">Yenilenme: Gece 00:00</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Canlı Pazar İstatistikleri */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-800/80">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-slate-800/60 text-blue-400">
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-blue-600 dark:text-blue-400">
               <Package className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-[10px] text-slate-400">Taranan Veritabanı</div>
-              <div className="text-xs font-bold text-white">18.450+ Canlı Ürün</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Taranan Veritabanı</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">18.450+ Canlı Ürün</div>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-slate-800/60 text-emerald-400">
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-[10px] text-slate-400">Ortalama Fırsat Skoru</div>
-              <div className="text-xs font-bold text-emerald-400">%82.4 Fırsat Endeksi</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Ortalama Fırsat Skoru</div>
+              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">%82.4 Fırsat Endeksi</div>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-slate-800/60 text-amber-400">
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-amber-600 dark:text-amber-400">
               <DollarSign className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-[10px] text-slate-400">Ortalama Kategori Komisyonu</div>
-              <div className="text-xs font-bold text-white">%17.5 (Kategori Bazlı)</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Ortalama Kategori Komisyonu</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">%17.5 (Kategori Bazlı)</div>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-slate-800/60 text-indigo-400">
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-indigo-600 dark:text-indigo-400">
               <BookmarkCheck className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-[10px] text-slate-400">Takip Edilen Ürün</div>
-              <div className="text-xs font-bold text-white">{trackedCount} Ürün İzleniyor</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Takip Edilen Ürün</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{trackedCount} Ürün İzleniyor</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. İNTERAKTİF 3 SORUDA E-TİCARET SİHİRBAZI (KULLANICI DOSTU AÇILIR/KAPANIR HERO - VARSAYILAN AÇIK) */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 border border-indigo-200 dark:from-indigo-950/40 dark:via-slate-900 dark:to-[#0f172a] dark:border-indigo-500/30 p-5 shadow-lg">
+      {/* 2. İNTERAKTİF 3 SORUDA E-TİCARET SİHİRBAZI */}
+      <div className="rounded-2xl bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 p-5 shadow-sm transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600/10 dark:bg-indigo-600/20 border border-indigo-500/20 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">

@@ -20,6 +20,8 @@ import {
   Moon,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import AppBrandLogo from "./AppBrandLogo";
+import LegalTermsModal from "./LegalTermsModal";
 
 export default function LandingShowcaseView() {
   const { loginWithGoogle, loginWithGitHub, loading, authError, clearAuthError } = useAuth();
@@ -27,6 +29,7 @@ export default function LandingShowcaseView() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isGoogleConnecting, setIsGoogleConnecting] = useState(false);
   const [isGithubConnecting, setIsGithubConnecting] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<"terms" | "privacy" | null>(null);
 
 
   const handleGoogleLogin = () => {
@@ -60,22 +63,11 @@ export default function LandingShowcaseView() {
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-[#070b14]/80 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-              <Zap className="w-6 h-6 fill-white" />
-            </div>
-            <div>
-              <div className="text-xl font-black tracking-tight flex items-center gap-1.5 text-slate-900 dark:text-white">
-                <span>ÜrünBul</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  PRO
-                </span>
-              </div>
-              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 -mt-0.5 hidden sm:block">
-                Türkiye Pazaryeri İstihbarat Platformu
-              </p>
-            </div>
-          </div>
+          <AppBrandLogo
+            size="lg"
+            showSubtitle={true}
+            subtitleText="Türkiye Pazaryerleri İstihbarat Platformu"
+          />
 
           {/* Menü Linkleri & Eylemler */}
           <div className="flex items-center gap-3">
@@ -157,8 +149,8 @@ export default function LandingShowcaseView() {
 
           {/* Açıklama */}
           <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-10 leading-relaxed font-normal">
-            Trendyol, Hepsiburada, Amazon TR ve N11 üzerindeki 100.000+ ürünü tek panelde analiz edin.
-            Aylık 100$ abonelik ücreti yok; reklam destekli model ile Türkiye satıcılarına <strong>200 arama/gün</strong> tamamen ücretsiz.
+            Trendyol, Hepsiburada, Amazon TR ve N11 üzerindeki binlerce ürünü tek panelde analiz edin.
+            Aylık abonelik ücreti yok; giriş yapan kullanıcılara <strong>200 arama/gün</strong> tamamen ücretsiz.
           </p>
 
           {/* CTA Butonları */}
@@ -180,7 +172,7 @@ export default function LandingShowcaseView() {
               <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">Pazaryeri Taraması</div>
             </div>
             <div className="p-3 text-center">
-              <div className="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400">100.000+</div>
+              <div className="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400">Binlerce</div>
               <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">Taranan Fırsat Ürünü</div>
             </div>
             <div className="p-3 text-center">
@@ -203,7 +195,7 @@ export default function LandingShowcaseView() {
               Kapsamlı E-Ticaret Cephanesi
             </h2>
             <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
-              Helium 10 & Jungle Scout Gücü, Türkiye'ye Özel
+              Kapsamlı E-Ticaret Cephanesi, Türkiye'ye Özel
             </h3>
             <p className="text-slate-600 dark:text-slate-400 mt-3 text-base">
               Türk pazaryerlerinin dinamiklerine uygun algoritmalarla donatılmış analiz araçları.
@@ -386,12 +378,29 @@ export default function LandingShowcaseView() {
       <footer className="mt-auto py-8 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#070b14] text-center text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© 2026 ÜrünBul (urunbul.me). Tüm hakları saklıdır. Reklam destekli ücretsiz e-ticaret istihbaratı.</p>
-          <div className="flex items-center gap-4">
-            <button type="button" onClick={() => setIsAuthModalOpen(true)} className="hover:text-emerald-500 transition">
-              Giriş Yap
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <button
+              type="button"
+              onClick={() => setLegalModalTab("terms")}
+              className="hover:text-emerald-500 transition cursor-pointer"
+            >
+              Hizmet Şartları
             </button>
             <span>•</span>
-            <span className="text-slate-400">Gizlilik & Şartlar</span>
+            <button
+              type="button"
+              onClick={() => setLegalModalTab("privacy")}
+              className="hover:text-emerald-500 transition cursor-pointer"
+            >
+              Gizlilik ve KVKK Politikası
+            </button>
+            <span>•</span>
+            <a
+              href="mailto:reklam@urunbul.me?subject=UrunBul%20Sponsorluk%20ve%20Reklam"
+              className="hover:text-emerald-500 transition"
+            >
+              Reklam & İletişim
+            </a>
           </div>
         </div>
       </footer>
@@ -409,9 +418,7 @@ export default function LandingShowcaseView() {
             </button>
 
             <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white">
-                <Zap className="w-5 h-5 fill-white" />
-              </div>
+              <AppBrandLogo size="md" showText={false} />
               <h3 className="text-xl font-black text-slate-900 dark:text-white">
                 ÜrünBul'a Katılın
               </h3>
@@ -496,12 +503,35 @@ export default function LandingShowcaseView() {
 
             <div className="mt-5 text-center">
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Giriş yaparak Hizmet Şartları ve Gizlilik Politikası'nı kabul etmiş sayılırsınız. Temp-mail sahte hesaplar otomatik engellenir.
+                Giriş yaparak{" "}
+                <button
+                  type="button"
+                  onClick={() => setLegalModalTab("terms")}
+                  className="underline text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-medium cursor-pointer"
+                >
+                  Hizmet Şartları
+                </button>{" "}
+                ve{" "}
+                <button
+                  type="button"
+                  onClick={() => setLegalModalTab("privacy")}
+                  className="underline text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-medium cursor-pointer"
+                >
+                  Gizlilik Politikası
+                </button>
+                'nı kabul etmiş sayılırsınız.
               </p>
             </div>
           </div>
         </div>
       )}
+
+      {/* 8. HUKUKİ HİZMET ŞARTLARI & GİZLİLİK POLİTİKASI MODALI */}
+      <LegalTermsModal
+        isOpen={!!legalModalTab}
+        initialTab={legalModalTab || "terms"}
+        onClose={() => setLegalModalTab(null)}
+      />
     </div>
   );
 }

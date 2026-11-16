@@ -20,6 +20,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Scale,
 } from "lucide-react";
 import { NavView } from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
@@ -34,6 +35,7 @@ interface TopBarProps {
   onOpenCalculator: () => void;
   onOpenOptimizer: () => void;
   onOpenExtensionModal: () => void;
+  onOpenLegal?: (tab?: "terms" | "privacy") => void;
   unreadCount?: number;
 }
 
@@ -46,6 +48,7 @@ export default function TopBar({
   onOpenCalculator,
   onOpenOptimizer,
   onOpenExtensionModal,
+  onOpenLegal,
   unreadCount = 2,
 }: TopBarProps) {
   const [localMarketplace, setLocalMarketplace] = useState("all");
@@ -394,6 +397,18 @@ export default function TopBar({
                 >
                   <Settings className="w-4 h-4 text-slate-400" />
                   <span>{currentLang === "EN" ? "Preferences & Alerts" : "Platform & Bildirim Ayarları"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    if (onOpenLegal) onOpenLegal("terms");
+                  }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-200 font-medium transition cursor-pointer"
+                >
+                  <Scale className="w-4 h-4 text-emerald-400" />
+                  <span>{currentLang === "EN" ? "Terms & Privacy" : "Hizmet Şartları & Gizlilik"}</span>
                 </button>
               </div>
 

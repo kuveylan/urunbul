@@ -17,7 +17,7 @@ export default function ScribblesView({ initialKeywords }: ScribblesViewProps) {
   const [copied, setCopied] = useState(false);
   const [newKeywordInput, setNewKeywordInput] = useState("");
 
-  // Helium 10 Scribbles Anahtar Kelime Bankası (Kullanıldıkça üstü çizilen kelimeler)
+  // Scribbles Anahtar Kelime Bankası (Kullanıldıkça üstü çizilen kelimeler)
   const [targetKeywords, setTargetKeywords] = useState<string[]>([
     "kablosuz", "bluetooth", "kulaklık", "tws", "siyah", "mikrofonlu", "gürültü", "engelleme", "hızlı", "şarj", "suya", "dayanıklı"
   ]);
@@ -200,7 +200,7 @@ export default function ScribblesView({ initialKeywords }: ScribblesViewProps) {
           )}
         </div>
 
-        {/* Sağ Kolon: Helium 10 Scribbles Anahtar Kelime Çizme Kutusu */}
+        {/* Sağ Kolon: Scribbles Anahtar Kelime Çizme Kutusu */}
         <div className="space-y-4">
           {/* Skor Kartı */}
           {result && (
