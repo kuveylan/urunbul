@@ -707,7 +707,7 @@ export default function BlackBoxView({
         </div>
       </div>
 
-      {/* 3. DataVigo VigoRadar Filtre Paneli (4 Sekmeli Akordeon, Hızlı Şablonlar & Filtre Kitaplığım) */}
+      {/* 3. DataVigo VigoRadar Açık Izgara Filtre Paneli (4 Bloklu Hep Açık Izgara, Hızlı Şablonlar & Filtre Kitaplığım) */}
       <VigoRadarFilterPanel
         onApplyFilters={(criteria) => setAppliedFilters(criteria)}
         onResetFilters={handleResetFilters}

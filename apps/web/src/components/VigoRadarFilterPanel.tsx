@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import {
   Sparkles,
   Filter,
@@ -6,10 +8,6 @@ import {
   Bookmark,
   Trash2,
   Check,
-  ChevronDown,
-  ChevronUp,
-  TrendingUp,
-  ShieldCheck,
   Award,
   Zap,
   Truck,
@@ -19,6 +17,7 @@ import {
   Package,
   Layers,
   X,
+  Info,
 } from "lucide-react";
 import { safeLocalStorage } from "@/lib/safariFixes";
 
@@ -116,11 +115,6 @@ export default function VigoRadarFilterPanel({
   onResetFilters,
   activeCount,
 }: VigoRadarFilterPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "sales" | "reviews" | "competition" | "logistics"
-  >("sales");
-
   // Form State
   const [filters, setFilters] = useState<VigoRadarFilterCriteria>(INITIAL_VIGO_FILTERS);
 
@@ -205,7 +199,6 @@ export default function VigoRadarFilterPanel({
     }
 
     setFilters(preset);
-    setIsOpen(true);
   };
 
   const handleFieldChange = (key: keyof VigoRadarFilterCriteria, val: any) => {
@@ -231,7 +224,6 @@ export default function VigoRadarFilterPanel({
 
   const handleApply = () => {
     onApplyFilters(filters);
-    setIsOpen(false);
   };
 
   const handleSaveCurrentFilter = () => {
@@ -256,60 +248,65 @@ export default function VigoRadarFilterPanel({
   const handleLoadSavedPreset = (preset: SavedFilterPreset) => {
     setFilters(preset.criteria);
     setIsLibraryOpen(false);
-    setIsOpen(true);
   };
 
   return (
-    <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-3.5 sm:p-4 mb-4 shadow-xl transition-all">
-      {/* 1. Hızlı Başlangıç Şablonları & Aç/Kapa Başlığı */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        {/* Sol: Hızlı Başlangıç Hapları (DataVigo Presets) */}
+    <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-3.5 sm:p-4 mb-4 shadow-xl transition-all space-y-4">
+      {/* 1. ÜST KISIM: HIZLI BAŞLANGIÇ ŞABLONLARI (DATA VIGO PRESETS) */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            Hızlı Başlangıç:
+            Hızlı Şablonlar:
           </span>
           <button
             type="button"
             onClick={() => applyQuickPreset("newbie")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 hover:border-slate-600 transition-all flex items-center gap-1 shadow-sm"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 hover:border-slate-600 transition-all flex items-center gap-1 shadow-sm"
           >
             <span>🚀 Yeni Başlayanlar</span>
           </button>
           <button
             type="button"
             onClick={() => applyQuickPreset("high_demand")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700/80 hover:border-amber-500/30 transition-all flex items-center gap-1 shadow-sm"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-slate-700/80 hover:border-amber-500/30 transition-all flex items-center gap-1 shadow-sm"
           >
             <span>🔥 Yüksek Talep</span>
           </button>
           <button
             type="button"
             onClick={() => applyQuickPreset("low_competition")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700/80 hover:border-emerald-500/30 transition-all flex items-center gap-1 shadow-sm"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-emerald-300 border border-slate-700/80 hover:border-emerald-500/30 transition-all flex items-center gap-1 shadow-sm"
           >
             <span>🛡️ Düşük Rekabet</span>
           </button>
           <button
             type="button"
             onClick={() => applyQuickPreset("low_reviews")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700/80 hover:border-cyan-500/30 transition-all flex items-center gap-1 shadow-sm"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-slate-700/80 hover:border-cyan-500/30 transition-all flex items-center gap-1 shadow-sm"
           >
             <span>💎 Az Yorumlu Fırsatlar</span>
           </button>
           <button
             type="button"
             onClick={() => applyQuickPreset("potential")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-slate-700/80 hover:border-purple-500/30 transition-all flex items-center gap-1 shadow-sm"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-purple-300 border border-slate-700/80 hover:border-purple-500/30 transition-all flex items-center gap-1 shadow-sm"
           >
             <span>📈 Geliştirme Potansiyeli</span>
           </button>
+        </div>
 
-          {/* Filtre Kitaplığım Butonu */}
+        {/* Sağ: Filtre Kitaplığım & Aktif Sayaç */}
+        <div className="flex items-center gap-2 justify-end shrink-0">
+          {activeCount > 0 && (
+            <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+              {activeCount} Kriter Aktif
+            </span>
+          )}
           <button
             type="button"
             onClick={() => setIsLibraryOpen(true)}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-800/60 hover:border-blue-600 transition-all flex items-center gap-1.5 shadow-sm ml-auto sm:ml-0"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-800/60 hover:border-blue-600 transition-all flex items-center gap-1.5 shadow-sm"
           >
             <Bookmark className="w-3.5 h-3.5 text-blue-400" />
             <span>Filtre Kitaplığım</span>
@@ -318,555 +315,509 @@ export default function VigoRadarFilterPanel({
             </span>
           </button>
         </div>
+      </div>
 
-        {/* Sağ: Detaylı Filtreleri Göster / Gizle Butonu */}
-        <div className="flex items-center gap-2 justify-end shrink-0">
-          {activeCount > 0 && (
-            <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold">
-              {activeCount} Kriter Aktif
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
-              isOpen
-                ? "bg-slate-800 text-white border-slate-700"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 hover:from-blue-500 hover:to-indigo-500"
-            }`}
-          >
-            <Filter className="w-3.5 h-3.5" />
-            <span>{isOpen ? "Filtreleri Gizle" : "Detaylı Filtreler (VigoRadar)"}</span>
-            {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
+      {/* 2. ANA GÖVDE: 4 BLOKLU HEP AÇIK DATA VIGO IZGARASI (OPEN GRID) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
+        {/* BLOK 1: Satış & Performans */}
+        <div className="bg-[#0b101d] border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between space-y-3 shadow-inner">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-800 text-xs font-bold text-white">
+            <DollarSign className="w-4 h-4 text-emerald-400" />
+            <span>1. Satış & Performans</span>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            {/* Satış Fiyatı (₺) */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Satış Fiyatı (₺)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min ₺"
+                  value={filters.minPrice}
+                  onChange={(e) => handleFieldChange("minPrice", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks ₺"
+                  value={filters.maxPrice}
+                  onChange={(e) => handleFieldChange("maxPrice", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Aylık Satış (Adet) */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Aylık Satış (Adet)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min Adet"
+                  value={filters.minSales}
+                  onChange={(e) => handleFieldChange("minSales", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks Adet"
+                  value={filters.maxSales}
+                  onChange={(e) => handleFieldChange("maxSales", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Aylık Ciro (₺) */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Aylık Ciro (₺)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min ₺"
+                  value={filters.minRevenue}
+                  onChange={(e) => handleFieldChange("minRevenue", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks ₺"
+                  value={filters.maxRevenue}
+                  onChange={(e) => handleFieldChange("maxRevenue", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Fırsat Skoru (%) */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Fırsat Skoru (%)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks %</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min %"
+                  value={filters.minOpportunity}
+                  onChange={(e) => handleFieldChange("minOpportunity", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks %"
+                  value={filters.maxOpportunity}
+                  onChange={(e) => handleFieldChange("maxOpportunity", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* BLOK 2: Ürün & Yorumlar */}
+        <div className="bg-[#0b101d] border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between space-y-3 shadow-inner">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-800 text-xs font-bold text-white">
+            <Star className="w-4 h-4 text-amber-400" />
+            <span>2. Ürün & Yorumlar</span>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            {/* Yorum Sayısı */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Yorum Sayısı (Adet)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min Adet"
+                  value={filters.minReviews}
+                  onChange={(e) => handleFieldChange("minReviews", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks Adet"
+                  value={filters.maxReviews}
+                  onChange={(e) => handleFieldChange("maxReviews", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Müşteri Puanı */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Müşteri Puanı (/ 5.0)</span>
+                <span className="text-[10px] text-slate-500">★ Ortalama</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={filters.minRating}
+                  onChange={(e) => handleFieldChange("minRating", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="0">Tümü (0+)</option>
+                  <option value="3.5">★ 3.5+</option>
+                  <option value="4.0">★ 4.0+</option>
+                  <option value="4.3">★ 4.3+</option>
+                  <option value="4.5">★ 4.5+</option>
+                  <option value="4.7">★ 4.7+</option>
+                </select>
+                <span className="text-slate-600">—</span>
+                <select
+                  value={filters.maxRating}
+                  onChange={(e) => handleFieldChange("maxRating", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="5">★ 5.0</option>
+                  <option value="4.5">★ 4.5</option>
+                  <option value="4.2">★ 4.2</option>
+                  <option value="4.0">★ 4.0</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Sepetteki Kişi Sayısı */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Sepetteki Kişi (~ Adet)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min Sepet"
+                  value={filters.minInCart}
+                  onChange={(e) => handleFieldChange("minInCart", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks Sepet"
+                  value={filters.maxInCart}
+                  onChange={(e) => handleFieldChange("maxInCart", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Ürün Rozetleri */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                Pazar Rozetleri
+              </label>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => toggleBadge("best_seller")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all flex items-center gap-1 ${
+                    filters.badges.includes("best_seller")
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                      : "bg-[#060913] text-slate-400 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <Award className="w-3 h-3" />
+                  <span>Çok Satan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleBadge("flash_deal")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all flex items-center gap-1 ${
+                    filters.badges.includes("flash_deal")
+                      ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                      : "bg-[#060913] text-slate-400 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>Flaş Fırsat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleBadge("fast_delivery")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-semibold border transition-all flex items-center gap-1 ${
+                    filters.badges.includes("fast_delivery")
+                      ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                      : "bg-[#060913] text-slate-400 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <Truck className="w-3 h-3" />
+                  <span>Hızlı Kargo</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* BLOK 3: Rekabet & Marka */}
+        <div className="bg-[#0b101d] border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between space-y-3 shadow-inner">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-800 text-xs font-bold text-white">
+            <Tag className="w-4 h-4 text-blue-400" />
+            <span>3. Rekabet & Marka</span>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            {/* Satıcı Teklifi & İndirim Switch */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                  Satıcı Teklifi
+                </label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.minSellers}
+                    onChange={(e) => handleFieldChange("minSellers", e.target.value)}
+                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-slate-600">—</span>
+                  <input
+                    type="number"
+                    placeholder="Maks"
+                    value={filters.maxSellers}
+                    onChange={(e) => handleFieldChange("maxSellers", e.target.value)}
+                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col justify-end pt-3">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.hasDiscountOnly}
+                    onChange={(e) => handleFieldChange("hasDiscountOnly", e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-slate-700 text-blue-600 bg-slate-900 focus:ring-0 cursor-pointer"
+                  />
+                  <span className="text-slate-300 text-[10px] font-medium leading-tight">
+                    Sadece İndirimli
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Marka Dahil / Hariç */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
+                Marka (Dahil / Hariç)
+              </label>
+              <input
+                type="text"
+                placeholder="Dahil: Karaca, Philips..."
+                value={filters.includeBrands}
+                onChange={(e) => handleFieldChange("includeBrands", e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1 text-white text-xs focus:outline-none focus:border-blue-500 mb-1"
+              />
+              <input
+                type="text"
+                placeholder="Hariç: Apple, Samsung..."
+                value={filters.excludeBrands}
+                onChange={(e) => handleFieldChange("excludeBrands", e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1 text-white text-xs focus:outline-none focus:border-rose-500 placeholder-rose-500/40"
+              />
+            </div>
+
+            {/* Kelime Dahil / Hariç */}
+            <div>
+              <div className="flex items-center justify-between mb-0.5">
+                <label className="text-[11px] font-bold text-slate-300">
+                  Kelime (Dahil / Hariç)
+                </label>
+                <select
+                  value={filters.keywordMatchMode}
+                  onChange={(e) => handleFieldChange("keywordMatchMode", e.target.value)}
+                  className="bg-[#060913] border border-slate-700/80 rounded text-[10px] text-slate-300 px-1 py-0.5"
+                >
+                  <option value="any">Herhangi (OR)</option>
+                  <option value="all">Hepsi (AND)</option>
+                </select>
+              </div>
+              <input
+                type="text"
+                placeholder="Dahil: Paslanmaz, Çelik..."
+                value={filters.includeKeywords}
+                onChange={(e) => handleFieldChange("includeKeywords", e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1 text-white text-xs focus:outline-none focus:border-blue-500 mb-1"
+              />
+              <input
+                type="text"
+                placeholder="Hariç: Kılıf, Kablo..."
+                value={filters.excludeKeywords}
+                onChange={(e) => handleFieldChange("excludeKeywords", e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1 text-white text-xs focus:outline-none focus:border-rose-500 placeholder-rose-500/40"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* BLOK 4: Lojistik & Detaylar */}
+        <div className="bg-[#0b101d] border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between space-y-3 shadow-inner">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-800 text-xs font-bold text-white">
+            <Truck className="w-4 h-4 text-cyan-400" />
+            <span>4. Lojistik & Detaylar</span>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            {/* Kargo Bedeli (₺) */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Kargo Bedeli (₺)</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min ₺"
+                  value={filters.minShippingCost}
+                  onChange={(e) => handleFieldChange("minShippingCost", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks ₺"
+                  value={filters.maxShippingCost}
+                  onChange={(e) => handleFieldChange("maxShippingCost", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Barem / Desi */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Hacimsel Desi</span>
+                <span className="text-[10px] text-slate-500">Min — Maks</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min Desi"
+                  value={filters.minDesi}
+                  onChange={(e) => handleFieldChange("minDesi", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+                <span className="text-slate-600">—</span>
+                <input
+                  type="number"
+                  placeholder="Maks Desi"
+                  value={filters.maxDesi}
+                  onChange={(e) => handleFieldChange("maxDesi", e.target.value)}
+                  className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Lojistik Modeli */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                Lojistik Modeli
+              </label>
+              <select
+                value={filters.shippingMethod}
+                onChange={(e) => handleFieldChange("shippingMethod", e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                <option value="all">Tümü (Pazaryeri & Satıcı)</option>
+                <option value="marketplace">Pazaryeri Lojistiği (Express / Prime)</option>
+                <option value="merchant">Satıcı Gönderimi (Doğrudan Kargo)</option>
+              </select>
+            </div>
+
+            {/* Bilgilendirme İpucu Kutusu */}
+            <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                Filtre değerlerini girdikten sonra aşağıdaki butona tıklayarak sonuçları keşfedin.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 2. Açılır 4 Sekmeli Detaylı VigoRadar Paneli */}
-      {isOpen && (
-        <div className="mt-4 pt-4 border-t border-slate-800/80 animate-fadeIn">
-          {/* Sekme Butonları */}
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-4 overflow-x-auto text-xs scrollbar-none">
-            <button
-              type="button"
-              onClick={() => setActiveTab("sales")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
-                activeTab === "sales"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>1. Satış & Performans</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("reviews")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
-                activeTab === "reviews"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
-            >
-              <Star className="w-4 h-4 text-amber-400" />
-              <span>2. Ürün & Yorumlar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("competition")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
-                activeTab === "competition"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
-            >
-              <Tag className="w-4 h-4 text-emerald-400" />
-              <span>3. Rekabet & Marka</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("logistics")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
-                activeTab === "logistics"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
-            >
-              <Truck className="w-4 h-4 text-cyan-400" />
-              <span>4. Lojistik & Detaylar</span>
-            </button>
-          </div>
-
-          {/* Sekme İçerikleri */}
-          <div className="bg-[#0b101d] border border-slate-800/80 rounded-xl p-4 mb-4">
-            {/* SEKME 1: Satış & Performans */}
-            {activeTab === "sales" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                {/* Satış Fiyatı (₺) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                    <span>Satış Fiyatı (₺)</span>
-                    <span className="text-[10px] text-slate-500">Min — Max</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min ₺"
-                      value={filters.minPrice}
-                      onChange={(e) => handleFieldChange("minPrice", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="text-slate-600">—</span>
-                    <input
-                      type="number"
-                      placeholder="Maks ₺"
-                      value={filters.maxPrice}
-                      onChange={(e) => handleFieldChange("maxPrice", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Aylık Satış (Adet) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                    <span>Aylık Satış (Adet)</span>
-                    <span className="text-[10px] text-slate-500">Tahmini Talep</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min Adet"
-                      value={filters.minSales}
-                      onChange={(e) => handleFieldChange("minSales", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="text-slate-600">—</span>
-                    <input
-                      type="number"
-                      placeholder="Maks Adet"
-                      value={filters.maxSales}
-                      onChange={(e) => handleFieldChange("maxSales", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Aylık Ciro (₺) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                    <span>Aylık Ciro (₺)</span>
-                    <span className="text-[10px] text-slate-500">Pazar Geliri</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min ₺"
-                      value={filters.minRevenue}
-                      onChange={(e) => handleFieldChange("minRevenue", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="text-slate-600">—</span>
-                    <input
-                      type="number"
-                      placeholder="Maks ₺"
-                      value={filters.maxRevenue}
-                      onChange={(e) => handleFieldChange("maxRevenue", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Fırsat Skoru (%) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                    <span>Fırsat Skoru (%)</span>
-                    <span className="text-[10px] text-slate-500">Talep/Rekabet/Kâr</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min %"
-                      value={filters.minOpportunity}
-                      onChange={(e) => handleFieldChange("minOpportunity", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="text-slate-600">—</span>
-                    <input
-                      type="number"
-                      placeholder="Maks %"
-                      value={filters.maxOpportunity}
-                      onChange={(e) => handleFieldChange("maxOpportunity", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SEKME 2: Ürün & Yorumlar */}
-            {activeTab === "reviews" && (
-              <div className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Yorum Sayısı (Adet) */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Yorum Sayısı (Adet)</span>
-                      <span className="text-[10px] text-slate-500">Min — Max</span>
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        placeholder="Min Adet"
-                        value={filters.minReviews}
-                        onChange={(e) => handleFieldChange("minReviews", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      />
-                      <span className="text-slate-600">—</span>
-                      <input
-                        type="number"
-                        placeholder="Maks Adet"
-                        value={filters.maxReviews}
-                        onChange={(e) => handleFieldChange("maxReviews", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Değerlendirme Puanı (/ 5) */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Müşteri Puanı (/ 5.0)</span>
-                      <span className="text-[10px] text-slate-500">★ Ortalama</span>
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        value={filters.minRating}
-                        onChange={(e) => handleFieldChange("minRating", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="0">Tümü (0+)</option>
-                        <option value="3.5">★ 3.5+</option>
-                        <option value="4.0">★ 4.0+</option>
-                        <option value="4.3">★ 4.3+</option>
-                        <option value="4.5">★ 4.5+</option>
-                        <option value="4.7">★ 4.7+</option>
-                      </select>
-                      <span className="text-slate-600">—</span>
-                      <select
-                        value={filters.maxRating}
-                        onChange={(e) => handleFieldChange("maxRating", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="5">★ 5.0</option>
-                        <option value="4.5">★ 4.5</option>
-                        <option value="4.2">★ 4.2</option>
-                        <option value="4.0">★ 4.0</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Sepetteki Kişi Sayısı */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Sepetteki Kişi (~ Adet)</span>
-                      <span className="text-[10px] text-slate-500">Canlı Talep</span>
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        placeholder="Min Sepet"
-                        value={filters.minInCart}
-                        onChange={(e) => handleFieldChange("minInCart", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      />
-                      <span className="text-slate-600">—</span>
-                      <input
-                        type="number"
-                        placeholder="Maks Sepet"
-                        value={filters.maxInCart}
-                        onChange={(e) => handleFieldChange("maxInCart", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ürün Rozetleri Seçimi */}
-                <div className="pt-2 border-t border-slate-800">
-                  <span className="block text-[11px] font-bold text-slate-300 mb-2">
-                    Ürün Rozetleri (Pazar Sinyalleri)
-                  </span>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => toggleBadge("best_seller")}
-                      className={`px-3 py-1.5 rounded-lg font-semibold text-xs border transition-all flex items-center gap-1.5 ${
-                        filters.badges.includes("best_seller")
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                          : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700"
-                      }`}
-                    >
-                      <Award className="w-3.5 h-3.5" />
-                      <span>Çok Satanlar (Best Seller)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleBadge("flash_deal")}
-                      className={`px-3 py-1.5 rounded-lg font-semibold text-xs border transition-all flex items-center gap-1.5 ${
-                        filters.badges.includes("flash_deal")
-                          ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
-                          : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700"
-                      }`}
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Flaş Fırsat / İndirimde</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleBadge("fast_delivery")}
-                      className={`px-3 py-1.5 rounded-lg font-semibold text-xs border transition-all flex items-center gap-1.5 ${
-                        filters.badges.includes("fast_delivery")
-                          ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
-                          : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700"
-                      }`}
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Hızlı Teslimat / Prime</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SEKME 3: Rekabet & Marka */}
-            {activeTab === "competition" && (
-              <div className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Satıcı Teklifi Sayısı */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Satıcı Teklifi Sayısı</span>
-                      <span className="text-[10px] text-slate-500">Buybox Rekabeti</span>
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        placeholder="Min Satıcı"
-                        value={filters.minSellers}
-                        onChange={(e) => handleFieldChange("minSellers", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      />
-                      <span className="text-slate-600">—</span>
-                      <input
-                        type="number"
-                        placeholder="Maks Satıcı"
-                        value={filters.maxSellers}
-                        onChange={(e) => handleFieldChange("maxSellers", e.target.value)}
-                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Sadece İndirimli Ürünler Toggle */}
-                  <div className="flex flex-col justify-center">
-                    <label className="block text-[11px] font-bold text-slate-300 mb-2">
-                      Fiyat İndirimi
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={filters.hasDiscountOnly}
-                        onChange={(e) => handleFieldChange("hasDiscountOnly", e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-700 text-blue-600 bg-slate-900 focus:ring-0 cursor-pointer"
-                      />
-                      <span className="text-slate-300 text-xs font-medium">
-                        Yalnızca indirimi olan ürünleri göster
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Kelime Eşleştirme Modu */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
-                      Dahil Edilen Kelimeleri Eşleştir
-                    </label>
-                    <select
-                      value={filters.keywordMatchMode}
-                      onChange={(e) => handleFieldChange("keywordMatchMode", e.target.value)}
-                      className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="any">Herhangi birini içerir (OR)</option>
-                      <option value="all">Hepsini içerir (AND)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
-                  {/* Marka Dahil Et / Hariç Tut */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Marka Dahil Et (Virgülle ayırın)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Örn: Philips, Karaca, Xiaomi"
-                      value={filters.includeBrands}
-                      onChange={(e) => handleFieldChange("includeBrands", e.target.value)}
-                      className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500 mb-2"
-                    />
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                      Marka Hariç Tut (Virgülle ayırın)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Örn: Apple, Sony (Hariç tut)"
-                      value={filters.excludeBrands}
-                      onChange={(e) => handleFieldChange("excludeBrands", e.target.value)}
-                      className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-rose-500"
-                    />
-                  </div>
-
-                  {/* Kelime Dahil Et / Hariç Tut */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Kelime Dahil Et (Başlıkta aranan kelimeler)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Örn: Bluetooth, Çelik, Kablosuz"
-                      value={filters.includeKeywords}
-                      onChange={(e) => handleFieldChange("includeKeywords", e.target.value)}
-                      className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500 mb-2"
-                    />
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                      Kelime Hariç Tut (Başlıkta geçmesin)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Örn: Kılıf, Kablo, Adaptör (Hariç tut)"
-                      value={filters.excludeKeywords}
-                      onChange={(e) => handleFieldChange("excludeKeywords", e.target.value)}
-                      className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-rose-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SEKME 4: Lojistik & Detaylar */}
-            {activeTab === "logistics" && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                {/* Kargo Bedeli (₺) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                    <span>Kargo Bedeli (₺)</span>
-                    <span className="text-[10px] text-slate-500">Min — Max</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min ₺"
-                      value={filters.minShippingCost}
-                      onChange={(e) => handleFieldChange("minShippingCost", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="text-slate-600">—</span>
-                    <input
-                      type="number"
-                      placeholder="Maks ₺"
-                      value={filters.maxShippingCost}
-                      onChange={(e) => handleFieldChange("maxShippingCost", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Barem / Desi */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-                    <span>Hacimsel Ağırlık (Desi)</span>
-                    <span className="text-[10px] text-slate-500">Kargo Desisi</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min Desi"
-                      value={filters.minDesi}
-                      onChange={(e) => handleFieldChange("minDesi", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="text-slate-600">—</span>
-                    <input
-                      type="number"
-                      placeholder="Maks Desi"
-                      value={filters.maxDesi}
-                      onChange={(e) => handleFieldChange("maxDesi", e.target.value)}
-                      className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Gönderim Yöntemi */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
-                    Lojistik Modeli
-                  </label>
-                  <select
-                    value={filters.shippingMethod}
-                    onChange={(e) => handleFieldChange("shippingMethod", e.target.value)}
-                    className="w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="all">Tümü (Pazaryeri & Satıcı)</option>
-                    <option value="marketplace">Pazaryeri Lojistiği (Express / Prime)</option>
-                    <option value="merchant">Satıcı Gönderimi (Doğrudan Kargo)</option>
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 3. Alt Eylem Çubuğu: Sıfırla, Filtremi Kaydet & Ürünleri Keşfet */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Filtreleri Sıfırla</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSaveModal(true)}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-blue-300 hover:text-blue-200 bg-blue-950/40 hover:bg-blue-900/60 border border-blue-800/60 transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                <span>Bu Filtreyi Kaydet</span>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleApply}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
-            >
-              <Filter className="w-3.5 h-3.5" />
-              <span>Ürünleri Keşfet (Filtreleri Uygula)</span>
-            </button>
-          </div>
+      {/* 3. ALT EYLEM ÇUBUĞU (ACTION BAR): SIFIRLA, KAYDET & ÜRÜNLERİ KEŞFET */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all flex items-center justify-center gap-1.5 shadow-sm w-1/2 sm:w-auto"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Filtreleri Sıfırla</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSaveModal(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-blue-300 hover:text-blue-200 bg-blue-950/40 hover:bg-blue-900/60 border border-blue-800/60 transition-all flex items-center justify-center gap-1.5 shadow-sm w-1/2 sm:w-auto"
+          >
+            <Bookmark className="w-3.5 h-3.5" />
+            <span>Bu Filtreyi Kaydet</span>
+          </button>
         </div>
-      )}
 
-      {/* 4. Filtre Kitaplığım Çekmecesi / Modalı */}
+        <button
+          type="button"
+          onClick={handleApply}
+          className="w-full sm:w-auto px-7 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <Filter className="w-4 h-4" />
+          <span>Ürünleri Keşfet (Filtreleri Uygula)</span>
+          {activeCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.2 rounded-full bg-white/20 text-white text-[10px] font-black">
+              {activeCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* 4. MOBİL SABİT (STICKY) UYGULAMA ÇUBUĞU */}
+      <div className="sm:hidden fixed bottom-16 left-0 right-0 z-40 p-2.5 bg-[#0b101d]/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-between gap-2 shadow-2xl">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="p-2.5 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 shrink-0"
+          title="Filtreleri Sıfırla"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleApply}
+          className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 active:scale-95 text-white font-bold rounded-xl text-xs shadow-lg shadow-blue-600/40 flex items-center justify-center gap-2"
+        >
+          <Filter className="w-4 h-4" />
+          <span>Ürünleri Keşfet {activeCount > 0 ? `(${activeCount} Kriter)` : ""}</span>
+        </button>
+      </div>
+
+      {/* 5. FİLTRE KİTAPLIĞIM ÇEKMECESİ / MODALI */}
       {isLibraryOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-[#0b101d] border border-slate-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Bookmark className="w-5 h-5 text-blue-400" />
-                <h3 className="font-bold text-white text-sm">Filtre Kitaplığım (VigoRadar)</h3>
+                <h3 className="font-bold text-white text-sm">Filtre Kitaplığım (DataVigo)</h3>
               </div>
               <button
                 type="button"
@@ -930,7 +881,7 @@ export default function VigoRadarFilterPanel({
         </div>
       )}
 
-      {/* 5. Filtre Kaydetme Popup Modalı */}
+      {/* 6. FİLTRE KAYDETME POPUP MODALI */}
       {showSaveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-[#0b101d] border border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
