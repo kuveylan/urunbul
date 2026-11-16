@@ -179,7 +179,14 @@ async def get_featured_products(
         return products
 
     # Eğer DB henüz boşsa, popüler başlangıç ürünlerini tara ve kaydet
-    return await search_products(q="kahve makinesi", page=1, sort_by="opportunity", db=db)
+    return await ProductSearchService.search(
+        query="kahve makinesi",
+        marketplace="all",
+        page=1,
+        limit=16,
+        sort_by="opportunity",
+        db=db,
+    )
 
 
 @router.get("/recommendations")
@@ -206,7 +213,14 @@ async def get_recommended_products(
 
         if not products or len(products) < 3:
             query = f"{category} cok satanlar"
-            scraped = await search_products(q=query, page=1, sort_by="opportunity", db=db)
+            scraped = await ProductSearchService.search(
+                query=query,
+                marketplace="all",
+                page=1,
+                limit=10,
+                sort_by="opportunity",
+                db=db,
+            )
             if scraped:
                 products = scraped[:3]
     else:
@@ -228,7 +242,14 @@ async def get_recommended_products(
             needs_scrape = True
 
         if needs_scrape:
-            scraped = await search_products(q="en cok satanlar", page=1, sort_by="opportunity", db=db)
+            scraped = await ProductSearchService.search(
+                query="en cok satanlar",
+                marketplace="all",
+                page=1,
+                limit=10,
+                sort_by="opportunity",
+                db=db,
+            )
             if scraped:
                 products = scraped[:3]
         else:

@@ -34,7 +34,8 @@ class ProductSearchService:
         """
         4 Pazaryeri (Trendyol, Hepsiburada, Amazon TR, N11) Canlı Arama ve 15 Dakikalık Akıllı Önbellek Servisi
         """
-        mp = (marketplace or "all").lower().strip()
+        raw_mp = marketplace.default if hasattr(marketplace, "default") else marketplace
+        mp = (str(raw_mp) if raw_mp else "all").lower().strip()
         clean_q = (query or "").strip()
         search_term = f"{clean_q} {category}".strip() if category and category != "Tüm Kategoriler" else clean_q
 
