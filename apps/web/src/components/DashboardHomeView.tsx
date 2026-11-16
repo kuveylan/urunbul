@@ -28,7 +28,7 @@ import {
   Compass,
 } from "lucide-react";
 import { NavView } from "./Sidebar";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, resilientFetch } from "@/lib/api";
 import ProductMatchmakerWizard from "./ProductMatchmakerWizard";
 import { useAuth } from "@/context/AuthContext";
 
@@ -103,37 +103,44 @@ export default function DashboardHomeView({
         const param = query.startsWith("http") || query.includes("trendyol.com")
           ? `url=${encodeURIComponent(query)}`
           : `product_id=${encodeURIComponent(query)}`;
-        const inspectRes = await fetch(apiUrl(`/api/v1/products/inspect?${param}`));
-        if (inspectRes.ok) {
-          const detail = await inspectRes.json();
-          const score = Math.round(detail.opportunity_score || 82);
-          let status: "yes" | "maybe" | "no" = score >= 75 ? "yes" : score >= 58 ? "maybe" : "no";
-          let verdictText = status === "yes"
-            ? `Yüksek talep ve kârlı pazar fırsatı! Buybox satıcısı: ${detail.seller_name || "Trendyol"}, sepette ${detail.in_cart_count || 12}+ kişi var.`
-            : status === "maybe"
-            ? `Orta düzey rekabet. Diğer satıcı teklifleri mevcut (${detail.other_merchants_count || 1} satıcı). Maliyet hesabı yapılması önerilir.`
-            : `Yüksek rekabet veya doymuş pazar sinyali. Mevcut fiyat: ${detail.current_price} TL.`;
-
-          setPulseVerdict({
-            status,
-            score,
-            title: detail.title ? (detail.title.length > 60 ? detail.title.slice(0, 60) + "..." : detail.title) : query,
-            verdictText,
-            demandScore: Math.round(detail.demand_score || 84),
-            competitionScore: Math.round(detail.competition_score || 72),
-            economicsScore: Math.round(detail.economics_score || 78),
-            estMonthlySales: detail.estimated_monthly_sales || 320,
-            estMonthlyRevenue: detail.estimated_monthly_revenue || (detail.current_price * 320),
-            medianPrice: detail.current_price || 0,
+        try {
+          const { data: detail } = await resilientFetch<any>(apiUrl(`/api/v1/products/inspect?${param}`), {
+            timeoutMs: 15000,
+            retries: 1,
           });
-          setPulseLoading(false);
-          return;
+          if (detail) {
+            const score = Math.round(detail.opportunity_score || 82);
+            let status: "yes" | "maybe" | "no" = score >= 75 ? "yes" : score >= 58 ? "maybe" : "no";
+            let verdictText = status === "yes"
+              ? `Yüksek talep ve kârlı pazar fırsatı! Buybox satıcısı: ${detail.seller_name || "Trendyol"}, sepette ${detail.in_cart_count || 12}+ kişi var.`
+              : status === "maybe"
+              ? `Orta düzey rekabet. Diğer satıcı teklifleri mevcut (${detail.other_merchants_count || 1} satıcı). Maliyet hesabı yapılması önerilir.`
+              : `Yüksek rekabet veya doymuş pazar sinyali. Mevcut fiyat: ${detail.current_price} TL.`;
+
+            setPulseVerdict({
+              status,
+              score,
+              title: detail.title ? (detail.title.length > 60 ? detail.title.slice(0, 60) + "..." : detail.title) : query,
+              verdictText,
+              demandScore: Math.round(detail.demand_score || 84),
+              competitionScore: Math.round(detail.competition_score || 72),
+              economicsScore: Math.round(detail.economics_score || 78),
+              estMonthlySales: detail.estimated_monthly_sales || 320,
+              estMonthlyRevenue: detail.estimated_monthly_revenue || (detail.current_price * 320),
+              medianPrice: detail.current_price || 0,
+            });
+            setPulseLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn("Pulse hızlı inceleme hatası:", e);
         }
       }
 
-      const res = await fetch(apiUrl(`/api/v1/products/search?q=${encodeURIComponent(query)}&page=1&sort_by=opportunity`));
-      if (!res.ok) throw new Error("Arama başarısız");
-      const data = await res.json();
+      const { data } = await resilientFetch<any[]>(
+        apiUrl(`/api/v1/products/search?q=${encodeURIComponent(query)}&page=1&sort_by=opportunity`),
+        { timeoutMs: 20000, retries: 1 }
+      );
 
       if (data && data.length > 0) {
         // En yüksek fırsat puanına sahip ürün veya pazar ortalaması

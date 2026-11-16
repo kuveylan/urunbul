@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Bell, X, TrendingDown, Zap, Store, Sparkles, Check, AlertTriangle } from "lucide-react";
 import { apiUrl } from "@/lib/api";
+import { safeFormatTime } from "@/lib/safariFixes";
 
 interface NotificationItem {
   id: number;
@@ -38,10 +39,11 @@ export default function NotificationDrawer({ isOpen, onClose }: NotificationDraw
 
   const formatTimestamp = (ts: string) => {
     if (!ts) return "";
-    if (ts.includes("önce") || ts.includes("ago") || isNaN(Date.parse(ts))) {
+    if (ts.includes("önce") || ts.includes("ago")) {
       return ts;
     }
-    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const formatted = safeFormatTime(ts);
+    return formatted || ts;
   };
 
   if (!isOpen) return null;

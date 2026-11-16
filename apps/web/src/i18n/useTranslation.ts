@@ -2,20 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { translations, Language } from "./translations";
+import { safeLocalStorage } from "@/lib/safariFixes";
 
 export function useTranslation() {
   const [lang, setLang] = useState<Language>("TR");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("urunbul_lang") as Language;
+      const saved = safeLocalStorage.getItem("urunbul_lang") as Language;
       if (saved && (saved === "TR" || saved === "EN")) {
         setLang(saved);
       }
     }
 
     const handleLangChange = (e: any) => {
-      const newLang = e?.detail || (localStorage.getItem("urunbul_lang") as Language);
+      const newLang = e?.detail || (safeLocalStorage.getItem("urunbul_lang") as Language);
       if (newLang && (newLang === "TR" || newLang === "EN")) {
         setLang(newLang);
       }
@@ -33,7 +34,7 @@ export function useTranslation() {
   const changeLanguage = (newLang: Language) => {
     setLang(newLang);
     if (typeof window !== "undefined") {
-      localStorage.setItem("urunbul_lang", newLang);
+      safeLocalStorage.setItem("urunbul_lang", newLang);
       window.dispatchEvent(new CustomEvent("urunbul_lang_change", { detail: newLang }));
       window.dispatchEvent(new Event("languagechange"));
     }

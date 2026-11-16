@@ -200,14 +200,14 @@ export default function HomePage() {
   const fetchInitialProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/v1/products/featured"), { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          setProducts(data);
-          setLoading(false);
-          return;
-        }
+      const { data } = await resilientFetch<Product[]>(apiUrl("/api/v1/products/featured"), {
+        timeoutMs: 5000,
+        retries: 0,
+      });
+      if (data && data.length > 0) {
+        setProducts(data);
+        setLoading(false);
+        return;
       }
     } catch (e) {
       console.warn("Öne çıkan ürünler canlı servisten alınamadı, yerel önbellek havuzu yükleniyor:", e);

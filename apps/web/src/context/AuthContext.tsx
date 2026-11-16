@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
+import { safeLocalStorage } from "@/lib/safariFixes";
 
 export interface UserProfile {
   id: number;
@@ -87,10 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(data.user);
         setQuota(data.quota);
         setToken(jwtToken);
-        localStorage.setItem("urunbul_token", jwtToken);
+        safeLocalStorage.setItem("urunbul_token", jwtToken);
       } else {
         // Geçersiz veya süresi dolmuş token
-        localStorage.removeItem("urunbul_token");
+        safeLocalStorage.removeItem("urunbul_token");
         setUser(null);
         setQuota(null);
         setToken(null);
@@ -115,20 +116,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (queryToken) {
-      localStorage.setItem("urunbul_token", queryToken);
+      safeLocalStorage.setItem("urunbul_token", queryToken);
       setToken(queryToken);
-      // URL'deki query parametresini temizle
+      // URL'deki query parametresini temizle, hash rotasını koru
       const url = new URL(window.location.href);
       url.searchParams.delete("token");
       url.searchParams.delete("auth_error");
       url.searchParams.delete("mode");
-      window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ""));
+      window.history.replaceState(
+        {},
+        document.title,
+        url.pathname + (url.search ? url.search : "") + (url.hash || "")
+      );
       fetchUserProfile(queryToken);
       return;
     }
 
     // 2. LocalStorage'da kayıtlı token kontrolü
-    const savedToken = localStorage.getItem("urunbul_token");
+    const savedToken = safeLocalStorage.getItem("urunbul_token");
     if (savedToken) {
       setToken(savedToken);
       fetchUserProfile(savedToken);
@@ -154,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         const jwt = data.access_token;
-        localStorage.setItem("urunbul_token", jwt);
+        safeLocalStorage.setItem("urunbul_token", jwt);
         setToken(jwt);
         await fetchUserProfile(jwt);
         return true;
@@ -168,14 +173,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem("urunbul_token");
+    safeLocalStorage.removeItem("urunbul_token");
     setUser(null);
     setQuota(null);
     setToken(null);
   };
 
   const refreshUser = async () => {
-    const curToken = token || (typeof window !== "undefined" ? localStorage.getItem("urunbul_token") : null);
+    const curToken = token || safeLocalStorage.getItem("urunbul_token");
     if (curToken) {
       await fetchUserProfile(curToken);
     }

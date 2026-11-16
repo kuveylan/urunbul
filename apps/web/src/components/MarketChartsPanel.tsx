@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -37,6 +37,11 @@ export default function MarketChartsPanel({
   avgPrice,
 }: MarketChartsPanelProps) {
   const [activeTab, setActiveTab] = useState<"price" | "reviews" | "brands">("price");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // 1. Fiyat Dağılım Histogramı
   const priceData = useMemo(() => {
@@ -216,28 +221,32 @@ export default function MarketChartsPanel({
             </div>
           </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={priceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0b0f19",
-                    borderColor: "#334155",
-                    borderRadius: "8px",
-                    color: "#fff",
-                    fontSize: "12px",
-                  }}
-                  formatter={(val: any, name: any) => [
-                    name === "count" ? `${val} Ürün` : `~${Number(val).toLocaleString("tr-TR")} Adet Satış`,
-                    name === "count" ? "Ürün Sayısı" : "Tahmini Aylık Satış",
-                  ]}
-                />
-                <Bar dataKey="count" name="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sales" name="sales" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full flex items-center justify-center">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={priceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                  <YAxis stroke="#64748b" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0b0f19",
+                      borderColor: "#334155",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                    formatter={(val: any, name: any) => [
+                      name === "count" ? `${val} Ürün` : `~${Number(val).toLocaleString("tr-TR")} Adet Satış`,
+                      name === "count" ? "Ürün Sayısı" : "Tahmini Aylık Satış",
+                    ]}
+                  />
+                  <Bar dataKey="count" name="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" name="sales" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-slate-500 text-xs">Yükleniyor...</div>
+            )}
           </div>
           <div className="flex items-center justify-center gap-6 text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
@@ -271,32 +280,36 @@ export default function MarketChartsPanel({
             </div>
           </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={reviewData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="tier" stroke="#64748b" fontSize={10} />
-                <YAxis stroke="#64748b" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0b0f19",
-                    borderColor: "#334155",
-                    borderRadius: "8px",
-                    color: "#fff",
-                    fontSize: "12px",
-                  }}
-                  formatter={(val: any, name: any) => [
-                    name === "sales"
-                      ? `~${Number(val).toLocaleString("tr-TR")} ad/ay`
-                      : name === "count"
-                      ? `${val} Ürün`
-                      : `%${val}`,
-                    name === "sales" ? "Tahmini Satış" : name === "count" ? "Ürün Sayısı" : "Ortalama Fırsat Skoru",
-                  ]}
-                />
-                <Bar dataKey="sales" name="sales" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="count" name="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full flex items-center justify-center">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={reviewData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <XAxis dataKey="tier" stroke="#64748b" fontSize={10} />
+                  <YAxis stroke="#64748b" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0b0f19",
+                      borderColor: "#334155",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                    formatter={(val: any, name: any) => [
+                      name === "sales"
+                        ? `~${Number(val).toLocaleString("tr-TR")} ad/ay`
+                        : name === "count"
+                        ? `${val} Ürün`
+                        : `%${val}`,
+                      name === "sales" ? "Tahmini Satış" : name === "count" ? "Ürün Sayısı" : "Ortalama Fırsat Skoru",
+                    ]}
+                  />
+                  <Bar dataKey="sales" name="sales" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" name="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-slate-500 text-xs">Yükleniyor...</div>
+            )}
           </div>
           <div className="flex items-center justify-center gap-6 text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
@@ -312,35 +325,39 @@ export default function MarketChartsPanel({
       {/* TAB 3: MARKA PAZAR PAYI KONSANTRASYONU */}
       {activeTab === "brands" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={brandData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={45}
-                  dataKey="revenue"
-                  nameKey="name"
-                  paddingAngle={3}
-                >
-                  {brandData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0b0f19",
-                    borderColor: "#334155",
-                    borderRadius: "8px",
-                    color: "#fff",
-                    fontSize: "12px",
-                  }}
-                  formatter={(val: any) => [`₺${Number(val).toLocaleString("tr-TR")}`, "Tahmini Ciro"]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full flex items-center justify-center">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={brandData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    innerRadius={45}
+                    dataKey="revenue"
+                    nameKey="name"
+                    paddingAngle={3}
+                  >
+                    {brandData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0b0f19",
+                      borderColor: "#334155",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                    formatter={(val: any) => [`₺${Number(val).toLocaleString("tr-TR")}`, "Tahmini Ciro"]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-slate-500 text-xs">Yükleniyor...</div>
+            )}
           </div>
 
           <div className="space-y-2">

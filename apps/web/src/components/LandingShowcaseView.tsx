@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import AppBrandLogo from "./AppBrandLogo";
 import LegalTermsModal from "./LegalTermsModal";
+import { safeLocalStorage } from "@/lib/safariFixes";
 
 export default function LandingShowcaseView() {
   const { loginWithGoogle, loginWithGitHub, loading, authError, clearAuthError } = useAuth();
@@ -49,10 +50,10 @@ export default function LandingShowcaseView() {
     if (typeof window !== "undefined") {
       if (next) {
         document.documentElement.classList.add("dark");
-        localStorage.setItem("urunbul_theme", "dark");
+        safeLocalStorage.setItem("urunbul_theme", "dark");
       } else {
         document.documentElement.classList.remove("dark");
-        localStorage.setItem("urunbul_theme", "light");
+        safeLocalStorage.setItem("urunbul_theme", "light");
       }
     }
   };

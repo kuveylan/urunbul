@@ -34,6 +34,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Product } from "./BlackBoxView";
+import { safeFormatDate } from "@/lib/safariFixes";
 
 interface ProductPassportModalProps {
   product: Product;
@@ -93,11 +94,16 @@ export default function ProductPassportModal({
     };
   }, [sellingPrice, costPrice, commissionRate, shippingCost]);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Fiyat Geçmişi Mock / Gerçek Verisi
   const chartData = useMemo(() => {
     if (product.price_history && product.price_history.length > 2) {
       return product.price_history.map((h: any, idx: number) => ({
-        date: new Date(h.timestamp).toLocaleDateString("tr-TR", { month: "short", day: "numeric" }),
+        date: safeFormatDate(h.timestamp, { month: "short", day: "numeric" }),
         price: h.price,
       }));
     }
@@ -331,25 +337,29 @@ export default function ProductPassportModal({
                 Anlık: ₺{product.current_price.toLocaleString("tr-TR")}
               </span>
             </div>
-            <div className="h-44 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke="#64748b" fontSize={10} />
-                  <YAxis stroke="#64748b" fontSize={10} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      borderColor: "#334155",
-                      borderRadius: "8px",
-                      color: "#fff",
-                      fontSize: "11px",
-                    }}
-                    formatter={(val: any) => [`₺${val}`, "Fiyat"]}
-                  />
-                  <Line type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="h-44 w-full flex items-center justify-center">
+              {isMounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke="#64748b" fontSize={10} />
+                    <YAxis stroke="#64748b" fontSize={10} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#0f172a",
+                        borderColor: "#334155",
+                        borderRadius: "8px",
+                        color: "#fff",
+                        fontSize: "11px",
+                      }}
+                      formatter={(val: any) => [`₺${val}`, "Fiyat"]}
+                    />
+                    <Line type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-slate-500 text-xs">Yükleniyor...</div>
+              )}
             </div>
           </div>
 

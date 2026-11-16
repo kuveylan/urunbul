@@ -7,6 +7,8 @@
  * - Hata çevirisi: Ham 'Failed to fetch' hatasını kullanıcı dostu Türkçe açıklamaya dönüştürür.
  */
 
+import { safeLocalStorage } from "./safariFixes";
+
 export function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
@@ -32,10 +34,7 @@ export function apiUrl(path: string): string {
 }
 
 export function getAuthToken(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("urunbul_token");
-  }
-  return null;
+  return safeLocalStorage.getItem("urunbul_token");
 }
 
 export function getAuthHeaders(): Record<string, string> {

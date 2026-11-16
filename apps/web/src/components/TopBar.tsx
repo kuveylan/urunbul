@@ -26,6 +26,7 @@ import {
 import { NavView } from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import AppBrandLogo from "./AppBrandLogo";
+import { safeLocalStorage } from "@/lib/safariFixes";
 
 interface TopBarProps {
   currentView: NavView;
@@ -67,10 +68,10 @@ export default function TopBar({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedLang = localStorage.getItem("urunbul_lang") as "TR" | "EN";
+      const savedLang = safeLocalStorage.getItem("urunbul_lang") as "TR" | "EN";
       if (savedLang) setCurrentLang(savedLang);
 
-      const savedTheme = localStorage.getItem("urunbul_theme");
+      const savedTheme = safeLocalStorage.getItem("urunbul_theme");
       const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
       const useDark = savedTheme ? savedTheme === "dark" : true; // Default dark modern
       setIsDarkMode(useDark);
@@ -97,7 +98,7 @@ export default function TopBar({
   const handleSelectLang = (lang: "TR" | "EN") => {
     setCurrentLang(lang);
     if (typeof window !== "undefined") {
-      localStorage.setItem("urunbul_lang", lang);
+      safeLocalStorage.setItem("urunbul_lang", lang);
       window.dispatchEvent(new CustomEvent("urunbul_lang_change", { detail: lang }));
       window.dispatchEvent(new Event("languagechange"));
     }
@@ -107,7 +108,7 @@ export default function TopBar({
     const nextDark = !isDarkMode;
     setIsDarkMode(nextDark);
     if (typeof window !== "undefined") {
-      localStorage.setItem("urunbul_theme", nextDark ? "dark" : "light");
+      safeLocalStorage.setItem("urunbul_theme", nextDark ? "dark" : "light");
       if (nextDark) {
         document.documentElement.classList.add("dark");
       } else {
@@ -121,18 +122,18 @@ export default function TopBar({
     <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 select-none shadow-xs transition-colors">
       {/* Sol: Hamburger Menü, Mobil Logo & Pazaryeri Seçici */}
       <div className="flex items-center space-x-1.5 sm:space-x-4">
-        {/* Hamburger Menü Butonu (Mobilde Çekmeceyi Açar) */}
+        {/* Hamburger Menü Butonu (Mobilde ve iPad'de Çekmeceyi Açar) */}
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="md:hidden p-2 -ml-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+          className="lg:hidden p-2 -ml-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
           aria-label="Menüyü Aç"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Mobilde Mini Logo */}
-        <div className="md:hidden flex items-center pr-1 shrink-0">
+        {/* Mobilde ve iPad'de Mini Logo */}
+        <div className="lg:hidden flex items-center pr-1 shrink-0">
           <AppBrandLogo size="sm" showText={false} />
         </div>
 
@@ -212,7 +213,7 @@ export default function TopBar({
       {/* Sağ: Hızlı Aksiyon Butonları & Bildirim & Segmented Dil & Tema & Tıklanabilir Profil */}
       <div className="flex items-center space-x-2 sm:space-x-2.5">
         {/* Segmented [ 🇹🇷 TR | 🇬🇧 EN ] İki Kutuplu Dil Seçici (Mobilde Çekmece İçindedir) */}
-        <div className="hidden md:flex items-center bg-slate-100 dark:bg-[#1e293b] border border-slate-300 dark:border-slate-700/80 rounded-lg p-0.5 text-[11px] font-bold">
+        <div className="hidden sm:flex items-center bg-slate-100 dark:bg-[#1e293b] border border-slate-300 dark:border-slate-700/80 rounded-lg p-0.5 text-[11px] font-bold">
           <button
             type="button"
             onClick={() => handleSelectLang("TR")}

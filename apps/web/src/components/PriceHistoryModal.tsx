@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { parseSafeDate } from "@/lib/safariFixes";
 import {
   X,
   TrendingDown,
@@ -62,6 +63,11 @@ export default function PriceHistoryModal({
   const [email, setEmail] = useState("kullanici@ornek.com");
   const [alertSuccess, setAlertSuccess] = useState(false);
   const [alertLoading, setAlertLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Periyoda göre filtrelenmiş veya zenginleştirilmiş grafik verisi
   const chartData = useMemo(() => {
@@ -70,7 +76,7 @@ export default function PriceHistoryModal({
     const cutoffDate = new Date(now.getTime() - selectedPeriod * 24 * 60 * 60 * 1000);
 
     // Eğer yeterli geçmiş verisi varsa filtrele
-    let filtered = rawHistory.filter((item) => new Date(item.timestamp) >= cutoffDate);
+    let filtered = rawHistory.filter((item) => parseSafeDate(item.timestamp) >= cutoffDate);
 
     // Eğer geçmiş verisi 3 adetten az ise, gerçekçi 1 yıllık / periyodik simülasyon eğrisi oluştur
     if (filtered.length < 3) {
@@ -104,7 +110,7 @@ export default function PriceHistoryModal({
 
     // Gerçek verileri Recharts formatına dönüştür
     return filtered.map((item) => {
-      const d = new Date(item.timestamp);
+      const d = parseSafeDate(item.timestamp);
       return {
         date: `${d.getDate()}.${d.getMonth() + 1}`,
         price: item.price,
@@ -316,8 +322,8 @@ export default function PriceHistoryModal({
             </span>
           </div>
 
-          <div className="h-56 w-full bg-[#0b0f19] rounded-xl p-2.5 border border-slate-800">
-            {chartData.length > 0 ? (
+          <div className="h-56 w-full bg-[#0b0f19] rounded-xl p-2.5 border border-slate-800 flex items-center justify-center">
+            {isMounted && chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />

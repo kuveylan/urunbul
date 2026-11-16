@@ -417,10 +417,18 @@ html:not(.dark) .fixed.inset-0.bg-black\/80 {
 }
 
 /* ============================================================
-   MOBİL VE DOKUNMATİK ERGONOMİ (iOS & ANDROID UYUMLULUK)
+   MOBİL, iPAD & DOKUNMATİK ERGONOMİ (iOS & WEBKIT UYUMLULUK)
    ============================================================ */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 .pb-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
 }
 
 .scrollbar-none::-webkit-scrollbar {
@@ -431,8 +439,14 @@ html:not(.dark) .fixed.inset-0.bg-black\/80 {
   scrollbar-width: none;
 }
 
-/* Mobilde iOS Safari'nin input odaklanmasında ekranı otomatik büyütmesini (auto-zoom) engelle */
-@media (max-width: 640px) {
+/* iOS Safari WebKit akıcı kaydırma (momentum scrolling) */
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobil ve iPad'de iOS Safari'nin input odaklanmasında ekranı kontrolsüz büyütmesini (auto-zoom) engelle */
+@media (max-width: 1024px), (pointer: coarse) {
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {

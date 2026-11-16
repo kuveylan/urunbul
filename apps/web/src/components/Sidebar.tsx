@@ -25,6 +25,7 @@ import {
 import { useTranslation } from "@/i18n/useTranslation";
 import AdBanner from "./AdBanner";
 import AppBrandLogo, { AppLogoIcon } from "./AppBrandLogo";
+import { safeLocalStorage } from "@/lib/safariFixes";
 
 export { AppLogoIcon };
 
@@ -68,19 +69,19 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobil Backdrop Overlay (Karanlık Arka Plan) */}
+      {/* Mobil/Tablet Backdrop Overlay (Karanlık Arka Plan) */}
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 md:hidden animate-fadeIn"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 lg:hidden animate-fadeIn"
           aria-hidden="true"
         />
       )}
 
-      {/* Ana Kenar Çubuğu (Masaüstünde Sabit Sütun, Mobilde Açılır Yan Çekmece) */}
+      {/* Ana Kenar Çubuğu (Masaüstünde Sabit Sütun, Mobil ve iPad'de Açılır Yan Çekmece) */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-64 bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 select-none min-h-screen transition-transform duration-300 ease-in-out ${
-          isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
+        className={`fixed lg:static inset-y-0 left-0 z-50 lg:z-auto w-72 sm:w-64 bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 select-none min-h-screen transition-transform duration-300 ease-in-out ${
+          isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         <div className="flex-1 flex flex-col min-h-0">
@@ -93,7 +94,7 @@ export default function Sidebar({
             >
               <AppBrandLogo size="md" showText={false} />
               <div>
-                <div className="font-black text-sm text-slate-900 dark:text-white tracking-wider flex items-center">
+                <div className="font-black text-sm text-slate-900 dark:white tracking-wider flex items-center">
                   <span>ÜrünBul</span>
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
@@ -102,11 +103,11 @@ export default function Sidebar({
               </div>
             </button>
 
-            {/* Mobilde Kapatma (X) Butonu */}
+            {/* Mobilde ve iPad'de Kapatma (X) Butonu */}
             <button
               type="button"
               onClick={onCloseMobile}
-              className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               aria-label="Menüyü Kapat"
             >
               <X className="w-5 h-5" />
@@ -301,15 +302,15 @@ export default function Sidebar({
       {/* Sponsor / Reklam Alanı */}
       <AdBanner slot="sidebar_bottom" />
 
-      {/* Mobilde Hızlı Tema ve Dil Değiştirici */}
-      <div className="md:hidden p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+      {/* Mobilde ve iPad'de Hızlı Tema ve Dil Değiştirici */}
+      <div className="lg:hidden p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
         <div className="flex items-center gap-1.5 text-xs font-bold">
           <button
             type="button"
             onClick={() => {
               const next = lang === "TR" ? "EN" : "TR";
               if (typeof window !== "undefined") {
-                localStorage.setItem("urunbul_lang", next);
+                safeLocalStorage.setItem("urunbul_lang", next);
                 window.dispatchEvent(new CustomEvent("urunbul_lang_change", { detail: next }));
                 window.dispatchEvent(new Event("languagechange"));
               }
@@ -327,10 +328,10 @@ export default function Sidebar({
               const isDark = document.documentElement.classList.contains("dark");
               if (isDark) {
                 document.documentElement.classList.remove("dark");
-                localStorage.setItem("urunbul_theme", "light");
+                safeLocalStorage.setItem("urunbul_theme", "light");
               } else {
                 document.documentElement.classList.add("dark");
-                localStorage.setItem("urunbul_theme", "dark");
+                safeLocalStorage.setItem("urunbul_theme", "dark");
               }
             }
           }}

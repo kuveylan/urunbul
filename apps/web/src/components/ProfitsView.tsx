@@ -68,6 +68,11 @@ export default function ProfitsView() {
   const [loading, setLoading] = useState<boolean>(false);
   const [result, setResult] = useState<any>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Seçili Pazaryerine Özel Dinamik Kategori Listesi
   const currentCategories = useMemo(() => {
@@ -676,34 +681,38 @@ Hesaplayıcı: https://urunbul.app`;
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
               {/* Pasta Grafiği */}
               <div className="md:col-span-5 h-44 flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={65}
-                      innerRadius={40}
-                      paddingAngle={3}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      formatter={(val: any) => `₺${Number(val).toFixed(2)}`}
-                      contentStyle={{
-                        backgroundColor: "#0b0f19",
-                        borderColor: "#334155",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                        color: "#fff",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={65}
+                        innerRadius={40}
+                        paddingAngle={3}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        formatter={(val: any) => `₺${Number(val).toFixed(2)}`}
+                        contentStyle={{
+                          backgroundColor: "#0b0f19",
+                          borderColor: "#334155",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          color: "#fff",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-slate-500 text-xs">Yükleniyor...</div>
+                )}
               </div>
 
               {/* Masraf Kalemleri Listesi */}
