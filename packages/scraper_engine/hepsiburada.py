@@ -2,7 +2,11 @@ import re
 import urllib.parse
 from typing import List, Optional
 from bs4 import BeautifulSoup
-from curl_cffi.requests import AsyncSession
+try:
+    from curl_cffi.requests import AsyncSession
+except ImportError:
+    AsyncSession = None
+import httpx
 from loguru import logger
 from .base import BaseMarketplaceScraper, ScrapedProductItem
 
@@ -27,8 +31,12 @@ class HepsiburadaScraper(BaseMarketplaceScraper):
         items: List[ScrapedProductItem] = []
 
         try:
-            async with AsyncSession(impersonate="chrome120", verify=False) as session:
-                res = await session.get(url, headers=self.headers, timeout=12.0)
+            if AsyncSession is not None:
+                async with AsyncSession(impersonate="chrome120", verify=False) as session:
+                    res = await session.get(url, headers=self.headers, timeout=12.0)
+            else:
+                async with httpx.AsyncClient(verify=False, headers=self.headers, timeout=12.0) as client:
+                    res = await client.get(url)
                 if res.status_code == 200:
                     soup = BeautifulSoup(res.text, "lxml")
                     cards = soup.select("li[id^='i'], article, div[data-test-id='product-card-item']")

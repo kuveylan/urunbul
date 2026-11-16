@@ -4,7 +4,11 @@ import math
 import urllib.parse
 from collections import Counter
 from typing import List, Dict, Any, Optional, Set
-from curl_cffi.requests import AsyncSession
+try:
+    from curl_cffi.requests import AsyncSession
+except ImportError:
+    AsyncSession = None
+import httpx
 from app.services.trendyol_service import TrendyolService
 
 
@@ -41,12 +45,20 @@ class KeywordService:
 
         async def probe_url(url: str) -> List[str]:
             try:
-                async with AsyncSession(impersonate="chrome124", verify=False) as s:
-                    res = await s.get(url, headers=headers, timeout=4.0)
-                    if res.status_code == 200:
-                        data = res.json()
-                        if isinstance(data, list) and len(data) >= 2 and isinstance(data[1], list):
-                            return data[1]
+                if AsyncSession is not None:
+                    async with AsyncSession(impersonate="chrome124", verify=False) as s:
+                        res = await s.get(url, headers=headers, timeout=4.0)
+                        if res.status_code == 200:
+                            data = res.json()
+                            if isinstance(data, list) and len(data) >= 2 and isinstance(data[1], list):
+                                return data[1]
+                else:
+                    async with httpx.AsyncClient(verify=False, headers=headers, timeout=4.0) as s:
+                        res = await s.get(url)
+                        if res.status_code == 200:
+                            data = res.json()
+                            if isinstance(data, list) and len(data) >= 2 and isinstance(data[1], list):
+                                return data[1]
             except Exception:
                 pass
             return []

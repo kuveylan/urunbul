@@ -2,7 +2,11 @@ import re
 import urllib.parse
 from typing import List, Optional
 from bs4 import BeautifulSoup
-from curl_cffi.requests import AsyncSession
+try:
+    from curl_cffi.requests import AsyncSession
+except ImportError:
+    AsyncSession = None
+import httpx
 from loguru import logger
 from .base import BaseMarketplaceScraper, ScrapedProductItem
 
@@ -27,12 +31,15 @@ class AmazonTrScraper(BaseMarketplaceScraper):
         items: List[ScrapedProductItem] = []
 
         try:
-            async with AsyncSession(impersonate="chrome124", verify=False) as session:
-                res = await session.get(url, headers=self.headers, timeout=12.0)
-                if res.status_code != 200:
-                    # Amazon bot challenge'ı durumunda safari17_0 ile anında fallback denemesi
-                    async with AsyncSession(impersonate="safari17_0", verify=False) as fallback_session:
-                        res = await fallback_session.get(url, headers=self.headers, timeout=12.0)
+            if AsyncSession is not None:
+                async with AsyncSession(impersonate="chrome124", verify=False) as session:
+                    res = await session.get(url, headers=self.headers, timeout=12.0)
+                    if res.status_code != 200:
+                        async with AsyncSession(impersonate="safari17_0", verify=False) as fallback_session:
+                            res = await fallback_session.get(url, headers=self.headers, timeout=12.0)
+            else:
+                async with httpx.AsyncClient(verify=False, headers=self.headers, timeout=12.0) as client:
+                    res = await client.get(url)
 
                 if res.status_code == 200:
                     soup = BeautifulSoup(res.text, "lxml")

@@ -2,7 +2,6 @@ import re
 from collections import Counter
 from typing import List, Dict, Any, Optional
 from loguru import logger
-from playwright.async_api import BrowserContext
 
 from app.core.config import settings
 from app.services.trendyol_service import TrendyolService
@@ -55,54 +54,55 @@ class ReviewService:
 
         try:
             browser = await TrendyolService.get_browser()
-            context: BrowserContext = await browser.new_context(
-                user_agent=settings.USER_AGENT,
-                viewport={"width": 1280, "height": 800},
-                locale="tr-TR",
-                extra_http_headers={
-                    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-                },
-            )
-            await context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
-            page = await context.new_page()
-
-            logger.info(f"Yorumlar çekiliyor: {review_url}")
-            await page.goto(review_url, wait_until="domcontentloaded", timeout=20000)
-            await page.wait_for_timeout(2000)
-
-            raw_cards = await page.evaluate('''() => {
-                const reviewEls = document.querySelectorAll(".review");
-                return Array.from(reviewEls).map(r => {
-                    const commentText = r.querySelector(".review-comment") ? r.querySelector(".review-comment").innerText.trim() : "";
-                    const stars = r.querySelectorAll(".star-rating-full-star").length || 5;
-                    const seller = r.querySelector(".comment-seller-info") ? r.querySelector(".comment-seller-info").innerText.trim() : "";
-                    const date = r.querySelector(".review-info-detail") ? r.querySelector(".review-info-detail").innerText.trim() : "";
-                    return {
-                        text: commentText,
-                        stars: stars,
-                        seller: seller,
-                        date: date
-                    };
-                }).filter(r => r.text.length > 5);
-            }''')
-
-            for card in raw_cards:
-                stars_val = card.get("stars", 5)
-                text_val = card.get("text", "")
-                sentiment = "POSITIVE" if stars_val >= 4 else ("NEGATIVE" if stars_val <= 2 else "NEUTRAL")
-                
-                extracted_reviews.append(
-                    ReviewItem(
-                        text=text_val,
-                        stars=stars_val,
-                        seller=card.get("seller") or "Trendyol Satıcısı",
-                        date=card.get("date") or "Yakın zamanda",
-                        sentiment=sentiment,
-                    )
+            if browser is not None:
+                context = await browser.new_context(
+                    user_agent=settings.USER_AGENT,
+                    viewport={"width": 1280, "height": 800},
+                    locale="tr-TR",
+                    extra_http_headers={
+                        "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+                    },
                 )
+                await context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
+                page = await context.new_page()
 
-            await page.close()
-            await context.close()
+                logger.info(f"Yorumlar çekiliyor: {review_url}")
+                await page.goto(review_url, wait_until="domcontentloaded", timeout=20000)
+                await page.wait_for_timeout(2000)
+
+                raw_cards = await page.evaluate('''() => {
+                    const reviewEls = document.querySelectorAll(".review");
+                    return Array.from(reviewEls).map(r => {
+                        const commentText = r.querySelector(".review-comment") ? r.querySelector(".review-comment").innerText.trim() : "";
+                        const stars = r.querySelectorAll(".star-rating-full-star").length || 5;
+                        const seller = r.querySelector(".comment-seller-info") ? r.querySelector(".comment-seller-info").innerText.trim() : "";
+                        const date = r.querySelector(".review-info-detail") ? r.querySelector(".review-info-detail").innerText.trim() : "";
+                        return {
+                            text: commentText,
+                            stars: stars,
+                            seller: seller,
+                            date: date
+                        };
+                    }).filter(r => r.text.length > 5);
+                }''')
+
+                for card in raw_cards:
+                    stars_val = card.get("stars", 5)
+                    text_val = card.get("text", "")
+                    sentiment = "POSITIVE" if stars_val >= 4 else ("NEGATIVE" if stars_val <= 2 else "NEUTRAL")
+                    
+                    extracted_reviews.append(
+                        ReviewItem(
+                            text=text_val,
+                            stars=stars_val,
+                            seller=card.get("seller") or "Trendyol Satıcısı",
+                            date=card.get("date") or "Yakın zamanda",
+                            sentiment=sentiment,
+                        )
+                    )
+
+                await page.close()
+                await context.close()
 
         except Exception as e:
             logger.warning(f"Trendyol yorum çekme uyarısı: {e}")

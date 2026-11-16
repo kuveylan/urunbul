@@ -4,7 +4,12 @@ import re
 import time
 from typing import List, Dict, Any, Optional, Tuple
 from loguru import logger
-from playwright.async_api import async_playwright, Browser, BrowserContext
+try:
+    from playwright.async_api import async_playwright, Browser, BrowserContext
+except ImportError:
+    async_playwright = None
+    Browser = Any  # type: ignore
+    BrowserContext = Any  # type: ignore
 
 from app.core.config import settings
 
@@ -27,24 +32,30 @@ class TrendyolService:
         return 14850
 
     @classmethod
-    async def get_browser(cls) -> Browser:
-        if cls._browser is None or not cls._browser.is_connected():
-            cls._playwright = await async_playwright().start()
-            cls._browser = await cls._playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-accelerated-2d-canvas",
-                    "--disable-gpu",
-                    "--disable-blink-features=AutomationControlled",
-                ],
-            )
-        return cls._browser
+    async def get_browser(cls) -> Optional[Any]:
+        if async_playwright is None:
+            return None
+        try:
+            if cls._browser is None or not cls._browser.is_connected():
+                cls._playwright = await async_playwright().start()
+                cls._browser = await cls._playwright.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-accelerated-2d-canvas",
+                        "--disable-gpu",
+                        "--disable-blink-features=AutomationControlled",
+                    ],
+                )
+            return cls._browser
+        except Exception as e:
+            logger.warning(f"Playwright Chromium başlatılamadı: {e}")
+            return None
 
     @classmethod
-    async def get_context(cls) -> BrowserContext:
+    async def get_context(cls) -> Optional[Any]:
         """
         Playwright Browser Context havuzu.
         Her istekte yeni context oluşturmak yerine mevcut context'i yeniden kullanarak
@@ -52,23 +63,29 @@ class TrendyolService:
         """
         async with cls._context_lock:
             browser = await cls.get_browser()
-            if cls._context is None:
-                cls._context = await browser.new_context(
-                    user_agent=settings.USER_AGENT,
-                    viewport={"width": 1280, "height": 800},
-                    locale="tr-TR",
-                    extra_http_headers={
-                        "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-                    },
-                )
-                await cls._context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
-                await cls._context.route(
-                    "**/*.{png,jpg,jpeg,webp,gif,svg,ico,woff,woff2,ttf,eot,css,mp4,mp3}",
-                    lambda route: route.abort(),
-                )
-                await cls._context.route("**/analytics/**", lambda route: route.abort())
-                await cls._context.route("**/tracker/**", lambda route: route.abort())
-            return cls._context
+            if browser is None:
+                return None
+            try:
+                if cls._context is None:
+                    cls._context = await browser.new_context(
+                        user_agent=settings.USER_AGENT,
+                        viewport={"width": 1280, "height": 800},
+                        locale="tr-TR",
+                        extra_http_headers={
+                            "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+                        },
+                    )
+                    await cls._context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
+                    await cls._context.route(
+                        "**/*.{png,jpg,jpeg,webp,gif,svg,ico,woff,woff2,ttf,eot,css,mp4,mp3}",
+                        lambda route: route.abort(),
+                    )
+                    await cls._context.route("**/analytics/**", lambda route: route.abort())
+                    await cls._context.route("**/tracker/**", lambda route: route.abort())
+                return cls._context
+            except Exception as e:
+                logger.warning(f"Playwright context oluşturulamadı: {e}")
+                return None
 
     @staticmethod
     def normalize_image_url(raw_image: Any) -> str:
@@ -275,10 +292,15 @@ class TrendyolService:
                 return [dict(p) for p in cached_data]
 
         products: List[Dict[str, Any]] = []
-        context = await cls.get_context()
-        page_obj = await context.new_page()
+        page_obj = None
 
         try:
+            context = await cls.get_context()
+            if context is None:
+                logger.info(f"Playwright tarayıcı context'i mevcut değil, arama atlandı: {clean_q}")
+                return products
+            page_obj = await context.new_page()
+
             sort_param = f"&sst={sort_order}" if sort_order else ""
             raw_products = []
             seen_ext_ids = set()
@@ -432,7 +454,11 @@ class TrendyolService:
         except Exception as e:
             logger.error(f"Trendyol Playwright scraping hatası: {e}")
         finally:
-            await page_obj.close()
+            if page_obj:
+                try:
+                    await page_obj.close()
+                except Exception:
+                    pass
 
         # Başarılı sonuçları önbelleğe kaydet
         if products:
@@ -463,10 +489,13 @@ class TrendyolService:
                 return None
             target_url = f"https://www.trendyol.com/product/p-{id_match.group(1)}"
 
-        context = await cls.get_context()
-        page_obj = await context.new_page()
-
+        page_obj = None
         try:
+            context = await cls.get_context()
+            if context is None:
+                logger.info(f"Playwright tarayıcı context'i mevcut değil: {clean_input}")
+                return None
+            page_obj = await context.new_page()
             await page_obj.goto(target_url, wait_until="domcontentloaded", timeout=18000)
             await page_obj.wait_for_timeout(350)
 
@@ -554,4 +583,8 @@ class TrendyolService:
             logger.error(f"Trendyol get_product_detail hatası: {e}")
             return None
         finally:
-            await page_obj.close()
+            if page_obj:
+                try:
+                    await page_obj.close()
+                except Exception:
+                    pass
