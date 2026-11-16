@@ -27,6 +27,8 @@ interface AuthContextType {
   quota: UserQuota | null;
   loading: boolean;
   token: string | null;
+  authError: string | null;
+  clearAuthError: () => void;
   loginWithGoogle: () => void;
   loginWithGitHub: () => void;
   loginDemo: () => Promise<boolean>;
@@ -35,6 +37,24 @@ interface AuthContextType {
   decrementSearchQuota: () => void;
   decrementKeywordQuota: () => void;
 }
+
+const mapAuthError = (errCode: string): string => {
+  switch (errCode) {
+    case "google_not_configured":
+      return "Google OAuth anahtarları sunucuda henüz tanımlanmadı. Render ortam değişkenlerine GOOGLE_CLIENT_ID ekleyene kadar 'Hızlı Test Oturumu' ile anında tam yetkiyle giriş yapabilirsiniz.";
+    case "github_not_configured":
+      return "GitHub OAuth anahtarları sunucuda henüz tanımlanmadı. Render ortam değişkenlerine GITHUB_CLIENT_ID ekleyene kadar 'Hızlı Test Oturumu' ile anında tam yetkiyle giriş yapabilirsiniz.";
+    case "google_cancelled":
+      return "Google ile oturum açma işlemi iptal edildi.";
+    case "github_cancelled":
+      return "GitHub ile oturum açma işlemi iptal edildi.";
+    case "token_exchange_failed":
+      return "Yetkilendirme anahtarı doğrulanamadı. Lütfen tekrar deneyin.";
+    default:
+      return "Giriş yapılırken bir sorun oluştu. Lütfen tekrar deneyin veya Hızlı Test Oturumu seçeneğini kullanın.";
+  }
+};
+
 
 const defaultQuota: UserQuota = {
   daily_searches_limit: 200,
@@ -52,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [quota, setQuota] = useState<UserQuota | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [token, setToken] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const fetchUserProfile = useCallback(async (jwtToken: string) => {
     try {
@@ -84,9 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. URL Query Parametresinden OAuth Token Yakalama (?token=...)
+    // 1. URL Query Parametresinden OAuth Token veya Hata Yakalama (?token=... veya ?auth_error=...)
     const params = new URLSearchParams(window.location.search);
     const queryToken = params.get("token");
+    const queryError = params.get("auth_error");
+
+    if (queryError) {
+      setAuthError(mapAuthError(queryError));
+    }
 
     if (queryToken) {
       localStorage.setItem("urunbul_token", queryToken);
@@ -177,6 +203,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const clearAuthError = () => setAuthError(null);
+
   return (
     <AuthContext.Provider
       value={{
@@ -184,6 +212,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         quota,
         loading,
         token,
+        authError,
+        clearAuthError,
         loginWithGoogle,
         loginWithGitHub,
         loginDemo,
