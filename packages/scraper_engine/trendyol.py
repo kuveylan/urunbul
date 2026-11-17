@@ -1,3 +1,5 @@
+import re
+import json
 import urllib.parse
 from typing import List, Optional, Dict, Any
 import httpx
@@ -25,7 +27,12 @@ class TrendyolScraper(BaseMarketplaceScraper):
         }
 
     async def search(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
-        # 1. Öncelikle Playwright tabanlı derin taramayı dene
+        # 1. Öncelikle hafif ve ultra hızlı HTTP Gateway / HTML araması yap (bulut sunucuları ve Render için)
+        items = await self._search_http(query=query, page=page, limit=limit)
+        if items:
+            return items
+
+        # 2. HTTP Gateway boş dönerse ve Playwright mevcutsa derin taramayı dene
         try:
             raw_items = await TrendyolService.search_products(query=query, page=page)
             if raw_items:
@@ -54,10 +61,9 @@ class TrendyolScraper(BaseMarketplaceScraper):
                 if results:
                     return results
         except Exception as e:
-            logger.warning(f"Trendyol Playwright araması başarısız oldu, HTTP Gateway'e geçiliyor: {e}")
+            logger.warning(f"Trendyol Playwright araması başarısız oldu: {e}")
 
-        # 2. Render ve hafif bulut sunucuları için Hızlı HTTP Gateway Fallback
-        return await self._search_http(query=query, page=page, limit=limit)
+        return items
 
     async def _search_http(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
         encoded = urllib.parse.quote_plus(query.strip())
@@ -123,6 +129,53 @@ class TrendyolScraper(BaseMarketplaceScraper):
                     )
         except Exception as e:
             logger.warning(f"Trendyol HTTP Gateway araması başarısız oldu: {e}")
+
+        # Eğer API Gateway yanıt vermediyse HTML arama sayfasından veri çekmeyi dene
+        if not items:
+            try:
+                html_url = f"https://www.trendyol.com/sr?q={encoded}&pi={page}"
+                html_res = None
+                if AsyncSession is not None:
+                    async with AsyncSession(impersonate="chrome120", verify=False) as session:
+                        html_res = await session.get(html_url, headers=self.headers, timeout=8.0)
+                else:
+                    async with httpx.AsyncClient(verify=False, headers=self.headers, timeout=8.0) as client:
+                        html_res = await client.get(html_url)
+
+                if html_res and html_res.status_code == 200:
+                    text = html_res.text
+                    match = re.search(r'__single-search-result__PROPS\s*=\s*(\{.*?\});\s*<\/script>', text, re.DOTALL)
+                    if match:
+                        props = json.loads(match.group(1))
+                        data_block = props.get("data", {}) or {}
+                        raw_products = data_block.get("products", [])
+                        for p in raw_products[:limit]:
+                            p_id = str(p.get("id", ""))
+                            if not p_id:
+                                continue
+                            price_info = p.get("price", {}) or {}
+                            current_price = float(price_info.get("sellingPrice", {}).get("value") or price_info.get("discountedPrice", {}).get("value") or 0.0)
+                            items.append(
+                                ScrapedProductItem(
+                                    marketplace="trendyol",
+                                    external_id=p_id,
+                                    title=str(p.get("name", "")),
+                                    brand=(p.get("brand") or {}).get("name") if isinstance(p.get("brand"), dict) else None,
+                                    category_name=p.get("categoryHierarchy"),
+                                    url=f"https://www.trendyol.com{p.get('url', '')}",
+                                    image_url=TrendyolService.normalize_image_url(p.get("images", [""])[0]),
+                                    current_price=current_price,
+                                    original_price=float(price_info.get("originalPrice", {}).get("value") or 0.0) if price_info.get("originalPrice") else None,
+                                    currency="TRY",
+                                    seller_name=(p.get("merchant") or {}).get("name") or "Trendyol",
+                                    seller_id=str((p.get("merchant") or {}).get("id", "")),
+                                    rating=float((p.get("ratingScore") or {}).get("averageRating", 0.0)),
+                                    review_count=int((p.get("ratingScore") or {}).get("totalCount", 0)),
+                                    in_stock=True,
+                                )
+                            )
+            except Exception as e:
+                logger.warning(f"Trendyol HTML arama fallback başarısız oldu: {e}")
 
         return items
 

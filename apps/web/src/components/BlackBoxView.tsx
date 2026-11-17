@@ -31,6 +31,7 @@ import {
   BarChart3,
   Layers,
   Store,
+  Activity,
 } from "lucide-react";
 import ProductMatchmakerWizard from "./ProductMatchmakerWizard";
 import MarketChartsPanel from "./MarketChartsPanel";
@@ -91,6 +92,7 @@ interface BlackBoxViewProps {
   isDeepScan?: boolean;
   onPageChange?: (page: number) => void;
   onToggleDeepScan?: (active: boolean) => void;
+  scraperStats?: { trendyol: number; hepsiburada: number; amazon: number; n11: number } | null;
 }
 
 export default function BlackBoxView({
@@ -115,7 +117,11 @@ export default function BlackBoxView({
   isDeepScan = false,
   onPageChange,
   onToggleDeepScan,
+  scraperStats,
 }: BlackBoxViewProps) {
+  // Wizard daraltılmış/açık durumu
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+
   // Kategori seçimi (local fallback)
   const [localCategory, setLocalCategory] = useState("Tüm Kategoriler");
   const currentCategory = propCategory || localCategory;
@@ -522,11 +528,36 @@ export default function BlackBoxView({
 
   return (
     <div className="space-y-5 animate-fadeIn">
-      {/* 0. İNTERAKTİF ÜRÜN EŞLEŞTİRME SİHİRBAZI (HERO HOOK) */}
-      <ProductMatchmakerWizard
-        onOpenProfitCalculator={onOpenProfitModal}
-        onToggleTrack={onToggleTrack}
-      />
+      {/* 0. İNTERAKTİF ÜRÜN EŞLEŞTİRME SİHİRBAZI (Katlanabilir / Varsayılan Kapalı) */}
+      <div className="rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-950/20 via-slate-900 to-indigo-950/20 overflow-hidden shadow-xs">
+        <button
+          type="button"
+          onClick={() => setIsWizardOpen(!isWizardOpen)}
+          className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-white/5 transition"
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold text-white">
+              3 Soruda E-Ticaret Fırsat Eşleştirme Sihirbazı (Sermaye & Strateji Tercihi)
+            </span>
+            <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium">
+              İsteğe Bağlı
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold">
+            <span>{isWizardOpen ? "Sihirbazı Gizle" : "Sihirbazı Aç"}</span>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isWizardOpen ? "rotate-180" : ""}`} />
+          </div>
+        </button>
+        {isWizardOpen && (
+          <div className="p-4 border-t border-slate-800 bg-[#0b0f19]">
+            <ProductMatchmakerWizard
+              onOpenProfitCalculator={onOpenProfitModal}
+              onToggleTrack={onToggleTrack}
+            />
+          </div>
+        )}
+      </div>
 
       {/* 1. BÜYÜK VERİ İSTİHBARAT & PAZAR HUNİSİ (FUNNEL BAR) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-500/20 shadow-lg">
@@ -704,6 +735,42 @@ export default function BlackBoxView({
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Canlı Yenile</span>
           </button>
+        </div>
+
+        {/* Canlı Pazar Radarı Durum Rozetleri */}
+        <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-800 text-[11px]">
+          <span className="text-slate-400 font-semibold flex items-center gap-1">
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            Canlı Tarama Radarı:
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-full font-bold border transition ${
+            scraperStats?.trendyol
+              ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
+              : "bg-slate-800/80 text-slate-300 border-slate-700"
+          }`}>
+            Trendyol {scraperStats?.trendyol !== undefined ? (scraperStats.trendyol > 0 ? `(${scraperStats.trendyol} ürün)` : "(0)") : "Aktif"}
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-full font-bold border transition ${
+            scraperStats?.hepsiburada
+              ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+              : "bg-slate-800/80 text-slate-300 border-slate-700"
+          }`}>
+            Hepsiburada {scraperStats?.hepsiburada !== undefined ? (scraperStats.hepsiburada > 0 ? `(${scraperStats.hepsiburada} ürün)` : "(0)") : "Aktif"}
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-full font-bold border transition ${
+            scraperStats?.amazon
+              ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30"
+              : "bg-slate-800/80 text-slate-300 border-slate-700"
+          }`}>
+            Amazon TR {scraperStats?.amazon !== undefined ? (scraperStats.amazon > 0 ? `(${scraperStats.amazon} ürün)` : "(0)") : "Aktif"}
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-full font-bold border transition ${
+            scraperStats?.n11
+              ? "bg-purple-500/15 text-purple-400 border-purple-500/30"
+              : "bg-slate-800/80 text-slate-300 border-slate-700"
+          }`}>
+            N11 {scraperStats?.n11 !== undefined ? (scraperStats.n11 > 0 ? `(${scraperStats.n11} ürün)` : "(0)") : "Aktif"}
+          </span>
         </div>
       </div>
 

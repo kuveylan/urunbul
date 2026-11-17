@@ -2,8 +2,9 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, or_
 from sqlalchemy.orm import selectinload
+from loguru import logger
 
 from app.models.product import Product, PriceHistory
 from app.services.trendyol_service import TrendyolService
@@ -18,6 +19,7 @@ from scraper_engine import (
 
 class ProductSearchService:
     CACHE_DURATION_MINUTES = 15
+    last_stats: Dict[str, int] = {"trendyol": 0, "hepsiburada": 0, "amazon": 0, "n11": 0}
 
     @classmethod
     async def search(
@@ -50,79 +52,74 @@ class ProductSearchService:
             if cached and len(cached) >= 4:
                 return cls._sort_products(cached, sort_by)
 
-        # 2. Canlı Scraping Taraması (Maksimum 8.5 saniye zaman aşımı ile korumalı)
+        # 2. Canlı Scraping Taraması (Her pazaryeri bağımsız zaman aşımı ile korunur)
         scraped_items: List[ScrapedProductItem] = []
+        cls.last_stats = {"trendyol": 0, "hepsiburada": 0, "amazon": 0, "n11": 0}
+
+        async def run_scraper_safe(scraper, name: str, lim: int) -> List[ScrapedProductItem]:
+            try:
+                res = await asyncio.wait_for(
+                    scraper.search(query=search_term, page=page, limit=lim),
+                    timeout=12.0
+                )
+                return res if isinstance(res, list) else []
+            except Exception as e:
+                logger.warning(f"{name} kazıma hatası: {e}")
+                return []
 
         try:
             if mp == "trendyol":
-                scraper = TrendyolScraper()
-                scraped_items = await asyncio.wait_for(
-                    scraper.search(query=search_term, page=page, limit=limit),
-                    timeout=8.5
-                )
+                scraped_items = await run_scraper_safe(TrendyolScraper(), "Trendyol", limit)
+                cls.last_stats["trendyol"] = len(scraped_items)
             elif mp == "hepsiburada":
-                scraper = HepsiburadaScraper()
-                scraped_items = await asyncio.wait_for(
-                    scraper.search(query=search_term, page=page, limit=limit),
-                    timeout=8.5
-                )
-            elif mp == "amazon" or mp == "amazon tr":
-                scraper = AmazonTrScraper()
-                scraped_items = await asyncio.wait_for(
-                    scraper.search(query=search_term, page=page, limit=limit),
-                    timeout=8.5
-                )
+                scraped_items = await run_scraper_safe(HepsiburadaScraper(), "Hepsiburada", limit)
+                cls.last_stats["hepsiburada"] = len(scraped_items)
+            elif mp in ["amazon", "amazon tr"]:
+                scraped_items = await run_scraper_safe(AmazonTrScraper(), "Amazon", limit)
+                cls.last_stats["amazon"] = len(scraped_items)
             elif mp == "n11":
-                scraper = N11Scraper()
-                scraped_items = await asyncio.wait_for(
-                    scraper.search(query=search_term, page=page, limit=limit),
-                    timeout=8.5
-                )
+                scraped_items = await run_scraper_safe(N11Scraper(), "N11", limit)
+                cls.last_stats["n11"] = len(scraped_items)
             else:
                 # "all" (Tüm Pazaryerleri): 4 pazaryeri paralel taranır
-                ty_scraper = TrendyolScraper()
-                hb_scraper = HepsiburadaScraper()
-                az_scraper = AmazonTrScraper()
-                n11_scraper = N11Scraper()
-
                 sub_limit = max(6, limit // 3)
-                tasks = [
-                    ty_scraper.search(query=search_term, page=page, limit=sub_limit),
-                    hb_scraper.search(query=search_term, page=page, limit=sub_limit),
-                    az_scraper.search(query=search_term, page=page, limit=sub_limit),
-                    n11_scraper.search(query=search_term, page=page, limit=sub_limit),
-                ]
-                batch_res = await asyncio.wait_for(
-                    asyncio.gather(*tasks, return_exceptions=True),
-                    timeout=8.5
+                results_batch = await asyncio.gather(
+                    run_scraper_safe(TrendyolScraper(), "Trendyol", sub_limit),
+                    run_scraper_safe(HepsiburadaScraper(), "Hepsiburada", sub_limit),
+                    run_scraper_safe(AmazonTrScraper(), "Amazon", sub_limit),
+                    run_scraper_safe(N11Scraper(), "N11", sub_limit),
+                    return_exceptions=True
                 )
+                ty_items = results_batch[0] if isinstance(results_batch[0], list) else []
+                hb_items = results_batch[1] if isinstance(results_batch[1], list) else []
+                az_items = results_batch[2] if isinstance(results_batch[2], list) else []
+                n11_items = results_batch[3] if isinstance(results_batch[3], list) else []
+
+                cls.last_stats = {
+                    "trendyol": len(ty_items),
+                    "hepsiburada": len(hb_items),
+                    "amazon": len(az_items),
+                    "n11": len(n11_items),
+                }
 
                 # Sonuçları dengeli şekilde harmanla (round-robin interleave)
-                valid_lists: List[List[ScrapedProductItem]] = []
-                for r in batch_res:
-                    if isinstance(r, list) and r:
-                        valid_lists.append(r)
-
+                valid_lists = [l for l in [ty_items, hb_items, az_items, n11_items] if l]
                 max_len = max([len(l) for l in valid_lists], default=0)
                 for i in range(max_len):
                     for l in valid_lists:
                         if i < len(l):
                             scraped_items.append(l[i])
-        except (asyncio.TimeoutError, Exception):
-            pass
+        except Exception as e:
+            logger.warning(f"Paralel kazıma genel hatası: {e}")
 
         if not scraped_items and mp != "trendyol":
             # Hedef pazaryerinde sonuç bulunamazsa yedek olarak Trendyol dene
-            try:
-                fallback_ty = TrendyolScraper()
-                scraped_items = await asyncio.wait_for(
-                    fallback_ty.search(query=search_term, page=page, limit=limit),
-                    timeout=4.0
-                )
-            except Exception:
-                pass
+            fallback_items = await run_scraper_safe(TrendyolScraper(), "Trendyol Fallback", limit)
+            if fallback_items:
+                scraped_items = fallback_items
+                cls.last_stats["trendyol"] = len(fallback_items)
 
-        # Eğer canlı kazımadan ürün gelmediyse (veya zaman aşımına uğradıysa), veritabanındaki mevcut ürünleri yedek olarak getir
+        # Eğer canlı kazımadan ürün gelmediyse veritabanındaki ilgili önbelleği getir
         if not scraped_items and db:
             cached_fallback = await cls._check_cache(
                 search_term=search_term,
@@ -311,15 +308,22 @@ class ProductSearchService:
             stmt = stmt.where(Product.marketplace == marketplace)
 
         if tokens:
-            for token in tokens[:2]:  # İlk 2 anahtar kelimeye göre ara
-                stmt = stmt.where(Product.title.ilike(f"%{token}%"))
+            for token in tokens[:2]:  # İlk 2 anahtar kelimeye göre ara (başlık, kategori veya marka)
+                stmt = stmt.where(
+                    or_(
+                        Product.title.ilike(f"%{token}%"),
+                        Product.category_name.ilike(f"%{token}%"),
+                        Product.brand.ilike(f"%{token}%"),
+                    )
+                )
 
         stmt = stmt.limit(limit)
         res = await db.execute(stmt)
         products = list(res.scalars().all())
 
-        # Eğer sorguya özel eşleşme yoksa ve yedek modundaysak, genel yüksek skorlu ürünleri getir
-        if not products and ignore_expiry:
+        # Yalnızca spesifik bir arama kelimesi verilmemişse (genel trend/fırsat vitrini) genel yüksek fırsatlı ürünleri getir
+        is_general_query = not tokens or any(k in search_term.lower() for k in ["trend", "fırsat", "cok satanlar", "çok satanlar"])
+        if not products and ignore_expiry and is_general_query:
             fallback_stmt = (
                 select(Product)
                 .options(selectinload(Product.price_history))

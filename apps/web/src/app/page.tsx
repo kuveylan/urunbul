@@ -84,6 +84,7 @@ export default function HomePage() {
   const [isDeepScan, setIsDeepScan] = useState<boolean>(false);
   const [currentCategory, setCurrentCategory] = useState<string>("Tüm Kategoriler");
   const [selectedMarketplace, setSelectedMarketplace] = useState<string>("all");
+  const [scraperStats, setScraperStats] = useState<{ trendyol: number; hepsiburada: number; amazon: number; n11: number } | null>(null);
 
   // Kelime & Satıcı Verileri
   const [keywordData, setKeywordData] = useState<any>(null);
@@ -169,8 +170,23 @@ export default function HomePage() {
       // Header'lardan büyük veri istatistiklerini yakala
       const headerTotal = headers.get("X-Total-Count");
       const headerPages = headers.get("X-Total-Pages");
+      const headerStats = headers.get("X-Scraper-Stats");
+
       if (headerTotal) setTotalScannedVolume(parseInt(headerTotal, 10));
       if (headerPages) setTotalPages(parseInt(headerPages, 10));
+
+      if (headerStats) {
+        const parsed = { trendyol: 0, hepsiburada: 0, amazon: 0, n11: 0 };
+        headerStats.split(",").forEach((item) => {
+          const [key, val] = item.split(":");
+          const count = parseInt(val, 10) || 0;
+          if (key === "ty") parsed.trendyol = count;
+          if (key === "hb") parsed.hepsiburada = count;
+          if (key === "az") parsed.amazon = count;
+          if (key === "n11") parsed.n11 = count;
+        });
+        setScraperStats(parsed);
+      }
 
       if (data && data.length > 0) {
         setProducts(data);
@@ -434,6 +450,7 @@ export default function HomePage() {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 isDeepScan={isDeepScan}
+                scraperStats={scraperStats}
                 onPageChange={(pNum) => handleProductSearch(searchQuery, currentCategory, pNum, isDeepScan, selectedMarketplace)}
                 onToggleDeepScan={(active) => {
                   setIsDeepScan(active);

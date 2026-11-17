@@ -334,11 +334,14 @@ async def search_products(
         valid_prices = sorted([p.current_price for p in results if p.current_price > 0])
         median_price = valid_prices[len(valid_prices) // 2] if valid_prices else 0.0
 
+        stats = ProductSearchService.last_stats or {}
+        stats_str = f"ty:{stats.get('trendyol', 0)},hb:{stats.get('hepsiburada', 0)},az:{stats.get('amazon', 0)},n11:{stats.get('n11', 0)}"
+        response.headers["X-Scraper-Stats"] = stats_str
         response.headers["X-Total-Count"] = str(total_market_count)
         response.headers["X-Total-Pages"] = str(total_pages)
         response.headers["X-Current-Page"] = str(page)
         response.headers["X-Median-Price"] = str(round(median_price, 2))
-        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count, X-Total-Pages, X-Current-Page, X-Median-Price"
+        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count, X-Total-Pages, X-Current-Page, X-Median-Price, X-Scraper-Stats"
 
     return results
 

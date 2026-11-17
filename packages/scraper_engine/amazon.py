@@ -31,6 +31,7 @@ class AmazonTrScraper(BaseMarketplaceScraper):
         items: List[ScrapedProductItem] = []
 
         try:
+            res = None
             if AsyncSession is not None:
                 async with AsyncSession(impersonate="chrome124", verify=False) as session:
                     res = await session.get(url, headers=self.headers, timeout=12.0)
@@ -41,99 +42,99 @@ class AmazonTrScraper(BaseMarketplaceScraper):
                 async with httpx.AsyncClient(verify=False, headers=self.headers, timeout=12.0) as client:
                     res = await client.get(url)
 
-                if res.status_code == 200:
-                    soup = BeautifulSoup(res.text, "lxml")
-                    cards = soup.select("div[data-component-type='s-search-result']")
+            if res and res.status_code == 200:
+                soup = BeautifulSoup(res.text, "lxml")
+                cards = soup.select("div[data-component-type='s-search-result']")
 
-                    seen_asins = set()
-                    for card in cards:
-                        if len(items) >= limit:
-                            break
+                seen_asins = set()
+                for card in cards:
+                    if len(items) >= limit:
+                        break
 
-                        asin = card.get("data-asin", "").strip()
-                        if not asin or asin in seen_asins:
-                            continue
-                        seen_asins.add(asin)
+                    asin = card.get("data-asin", "").strip()
+                    if not asin or asin in seen_asins:
+                        continue
+                    seen_asins.add(asin)
 
-                        title_el = card.select_one("h2 a span, h2 span")
-                        price_whole = card.select_one(".a-price-whole")
-                        price_fraction = card.select_one(".a-price-fraction")
-                        link_el = card.select_one("h2 a[href]")
-                        img_el = card.select_one(".s-image")
-                        rating_el = card.select_one("i.a-icon-star-small span, span[aria-label*='yıldız']")
-                        review_el = card.select_one("span.a-size-base.s-underline-text, a[href*='customerReviews'] span")
+                    title_el = card.select_one("h2 a span, h2 span")
+                    price_whole = card.select_one(".a-price-whole")
+                    price_fraction = card.select_one(".a-price-fraction")
+                    link_el = card.select_one("h2 a[href]")
+                    img_el = card.select_one(".s-image")
+                    rating_el = card.select_one("i.a-icon-star-small span, span[aria-label*='yıldız']")
+                    review_el = card.select_one("span.a-size-base.s-underline-text, a[href*='customerReviews'] span")
 
-                        if not title_el or not price_whole or not link_el:
-                            continue
+                    if not title_el or not price_whole or not link_el:
+                        continue
 
-                        title = title_el.get_text(strip=True)
+                    title = title_el.get_text(strip=True)
 
-                        # Fiyat Ayrıştırma (Örn: 1.450 ve 00 -> 1450.0)
-                        whole_str = price_whole.get_text(strip=True).replace(".", "").replace(",", "")
-                        frac_str = price_fraction.get_text(strip=True) if price_fraction else "00"
+                    # Fiyat Ayrıştırma (Örn: 1.450 ve 00 -> 1450.0)
+                    whole_str = price_whole.get_text(strip=True).replace(".", "").replace(",", "")
+                    frac_str = price_fraction.get_text(strip=True) if price_fraction else "00"
+                    try:
+                        current_price = float(f"{whole_str}.{frac_str}")
+                    except ValueError:
+                        continue
+
+                    # Orijinal Fiyat
+                    original_price = None
+                    orig_el = card.select_one(".a-price.a-text-price span.a-offscreen")
+                    if orig_el:
+                        orig_raw = orig_el.get_text(strip=True).replace(".", "").replace(",", ".").replace("TL", "").replace("₺", "").strip()
                         try:
-                            current_price = float(f"{whole_str}.{frac_str}")
+                            o_val = float(orig_raw)
+                            if o_val > current_price:
+                                original_price = o_val
                         except ValueError:
-                            continue
+                            pass
 
-                        # Orijinal Fiyat
-                        original_price = None
-                        orig_el = card.select_one(".a-price.a-text-price span.a-offscreen")
-                        if orig_el:
-                            orig_raw = orig_el.get_text(strip=True).replace(".", "").replace(",", ".").replace("TL", "").replace("₺", "").strip()
+                    # URL
+                    rel_link = link_el.get("href", "")
+                    full_url = rel_link if rel_link.startswith("http") else f"https://www.amazon.com.tr{rel_link}"
+                    image_url = img_el.get("src") if img_el else None
+
+                    # Puan & Değerlendirme
+                    rating = 4.5
+                    if rating_el:
+                        r_match = re.search(r"(\d+(?:[.,]\d+)?)", rating_el.get_text(strip=True))
+                        if r_match:
                             try:
-                                o_val = float(orig_raw)
-                                if o_val > current_price:
-                                    original_price = o_val
+                                rating = float(r_match.group(1).replace(",", "."))
                             except ValueError:
                                 pass
 
-                        # URL
-                        rel_link = link_el.get("href", "")
-                        full_url = rel_link if rel_link.startswith("http") else f"https://www.amazon.com.tr{rel_link}"
-                        image_url = img_el.get("src") if img_el else None
+                    review_count = 50
+                    if review_el:
+                        rev_match = re.search(r"(\d+(?:\.\d+)?)", review_el.get_text(strip=True).replace(".", ""))
+                        if rev_match:
+                            try:
+                                review_count = int(rev_match.group(1))
+                            except ValueError:
+                                pass
 
-                        # Puan & Değerlendirme
-                        rating = 4.5
-                        if rating_el:
-                            r_match = re.search(r"(\d+(?:[.,]\d+)?)", rating_el.get_text(strip=True))
-                            if r_match:
-                                try:
-                                    rating = float(r_match.group(1).replace(",", "."))
-                                except ValueError:
-                                    pass
+                    # Prime / Satıcı
+                    is_prime = bool(card.select_one(".a-icon-prime"))
+                    seller_name = "Amazon.com.tr (Prime)" if is_prime else "Amazon Pazaryeri Satıcısı"
+                    brand = title.split()[0] if title else "Amazon"
 
-                        review_count = 50
-                        if review_el:
-                            rev_match = re.search(r"(\d+(?:\.\d+)?)", review_el.get_text(strip=True).replace(".", ""))
-                            if rev_match:
-                                try:
-                                    review_count = int(rev_match.group(1))
-                                except ValueError:
-                                    pass
-
-                        # Prime / Satıcı
-                        is_prime = bool(card.select_one(".a-icon-prime"))
-                        seller_name = "Amazon.com.tr (Prime)" if is_prime else "Amazon Pazaryeri Satıcısı"
-                        brand = title.split()[0] if title else "Amazon"
-
-                        items.append(
-                            ScrapedProductItem(
-                                marketplace="amazon",
-                                external_id=asin,
-                                title=title,
-                                brand=brand,
-                                url=full_url,
-                                image_url=image_url,
-                                current_price=current_price,
-                                original_price=original_price,
-                                currency="TRY",
-                                seller_name=seller_name,
-                                rating=rating,
-                                review_count=review_count,
-                                in_stock=True,
-                            )
+                    items.append(
+                        ScrapedProductItem(
+                            marketplace="amazon",
+                            external_id=asin,
+                            title=title,
+                            brand=brand,
+                            url=full_url,
+                            image_url=image_url,
+                            current_price=current_price,
+                            original_price=original_price,
+                            currency="TRY",
+                            seller_name=seller_name,
+                            rating=rating,
+                            review_count=review_count,
+                            in_stock=True,
                         )
+                    )
         except Exception as e:
             logger.warning(f"Amazon TR scraping uyarısı: {e}")
 
