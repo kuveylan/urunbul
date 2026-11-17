@@ -453,3 +453,21 @@ html {
     font-size: 16px !important;
   }
 }
+
+/* ============================================================
+   DATAVIGO VIGORADAR ÖZEL STİLLERİ (vr-*)
+   ============================================================ */
+.vr-workspace details > summary {
+  list-style: none;
+}
+.vr-workspace details > summary::-webkit-details-marker {
+  display: none;
+}
+.vr-range-field input[type="number"]::-webkit-inner-spin-button,
+.vr-range-field input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.vr-range-field input[type="number"] {
+  -moz-appearance: textfield;
+}

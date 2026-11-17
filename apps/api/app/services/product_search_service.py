@@ -36,10 +36,28 @@ class ProductSearchService:
         """
         4 Pazaryeri (Trendyol, Hepsiburada, Amazon TR, N11) Canlı Arama ve 15 Dakikalık Akıllı Önbellek Servisi
         """
+        # 1. Akıllı & Temiz Arama Terimi Çözümleyici
         raw_mp = marketplace.default if hasattr(marketplace, "default") else marketplace
         mp = (str(raw_mp) if raw_mp else "all").lower().strip()
         clean_q = (query or "").strip()
-        search_term = f"{clean_q} {category}".strip() if category and category != "Tüm Kategoriler" else clean_q
+        
+        is_generic = not clean_q or clean_q.lower() in ["trend", "fırsat", "cok satanlar", "çok satanlar", "firsat"]
+        has_category = bool(category and category.strip() and category != "Tüm Kategoriler")
+
+        if is_generic and has_category:
+            # Sadece kategori seçilmişse doğrudan temiz kategori adı aranır (Örn: "Elektronik", "Ev Aletleri")
+            search_term = category.strip()
+        elif is_generic and not has_category:
+            # Hem kelime hem kategori boşsa popüler yüksek talep e-ticaret tohumu aranır
+            search_term = "cok satanlar"
+        elif not is_generic and has_category:
+            # Hem kelime hem kategori girilmişse ve kategori zaten kelimede yoksa birleştirilir
+            if category.lower() in clean_q.lower():
+                search_term = clean_q
+            else:
+                search_term = f"{clean_q} {category}".strip()
+        else:
+            search_term = clean_q
 
         # 1. 15 Dakikalık Akıllı SQLite Önbellek Kontrolü
         if db and not force_refresh and search_term:
@@ -295,7 +313,8 @@ class ProductSearchService:
     ) -> List[Product]:
         """15 dakikalık taze önbellek kontrolü (veya yedek modunda son kayıtlı ürünler)"""
         cutoff = datetime.utcnow() - timedelta(minutes=cls.CACHE_DURATION_MINUTES)
-        tokens = [t.strip().lower() for t in search_term.split() if len(t.strip()) > 2]
+        stop_words = {"trend", "fırsat", "firsat", "cok", "çok", "satanlar", "urun", "ürün"}
+        tokens = [t.strip().lower() for t in search_term.split() if len(t.strip()) > 2 and t.strip().lower() not in stop_words]
 
         stmt = (
             select(Product)
@@ -317,6 +336,9 @@ class ProductSearchService:
                         Product.brand.ilike(f"%{token}%"),
                     )
                 )
+        else:
+            # Genel sorgularda fırsat puanı yüksek ürünleri önce getir
+            stmt = stmt.order_by(desc(Product.opportunity_score))
 
         stmt = stmt.limit(limit)
         res = await db.execute(stmt)

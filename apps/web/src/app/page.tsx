@@ -113,7 +113,8 @@ export default function HomePage() {
   ) => {
     const rawQ = overrideQuery !== undefined ? overrideQuery : searchQuery;
     const cat = category !== undefined ? category : currentCategory;
-    const q = rawQ.trim() || (cat && cat !== "Tüm Kategoriler" ? "" : "trend");
+    // Eğer kullanıcı arama kelimesi yazmadıysa ve kategori seçiliyse, sahte 'fırsat' yerine temiz kategoriyi ara
+    const effectiveQ = rawQ.trim() || (cat && cat !== "Tüm Kategoriler" ? cat : "cok satanlar");
 
     setLoading(true);
     setErrorMessage("");
@@ -125,7 +126,7 @@ export default function HomePage() {
       const mp = marketplaceOverride !== undefined ? marketplaceOverride : selectedMarketplace;
       if (marketplaceOverride !== undefined) setSelectedMarketplace(marketplaceOverride);
 
-      const trimmed = q.trim();
+      const trimmed = effectiveQ.trim();
       const isTrendyolLink = trimmed.includes("trendyol.com") || trimmed.includes("-p-") || (/^\d{6,}$/.test(trimmed) && (!cat || cat === "Tüm Kategoriler"));
       if (isTrendyolLink) {
         const param = trimmed.startsWith("http") || trimmed.includes("trendyol.com")
@@ -152,7 +153,7 @@ export default function HomePage() {
         cat && cat !== "Tüm Kategoriler"
           ? `&category=${encodeURIComponent(cat)}`
           : "";
-      const searchParam = q.trim() ? encodeURIComponent(q.trim()) : "fırsat";
+      const searchParam = encodeURIComponent(effectiveQ);
       const deepParam = deepScan ? "&deep_scan=true" : "";
       const pageParam = `&page=${page}`;
       const mpParam = mp ? `&marketplace=${encodeURIComponent(mp)}` : "";
@@ -230,7 +231,7 @@ export default function HomePage() {
       console.warn("Öne çıkan ürünler servisten alınamadı, canlı pazar araması başlatılıyor:", e);
     }
     // Sunucu havuzunda hazır öne çıkan ürün yoksa doğrudan gerçek canlı arama yap
-    await handleProductSearch("trend");
+    await handleProductSearch("cok satanlar");
   };
 
   // 2. Cerebro & Magnet Kelime Analizi

@@ -90,6 +90,25 @@ class ProductResponse(ProductBase):
     updated_at: Optional[datetime] = None
     price_history: List[PriceHistoryItem] = Field(default_factory=list)
 
+    # DataVigo VigoRadar İleri Metrikleri
+    bsr_rank: Optional[int] = None
+    family_sales: Optional[int] = None
+    family_revenue: Optional[float] = None
+    sales_review_ratio: Optional[float] = None
+    estimated_fba_fee: Optional[float] = None
+    seller_count: Optional[int] = 1
+    listing_quality_score: Optional[int] = 85
+    weight_kg: Optional[float] = None
+    desi: Optional[float] = None
+    is_fba: Optional[bool] = False
+    shipping_cost: Optional[float] = None
+    landed_price: Optional[float] = None
+    days_on_market: Optional[int] = 120
+    review_growth_pct: Optional[float] = 0.0
+    sales_growth_pct: Optional[float] = 0.0
+    negative_topic_pct: Optional[float] = 0.0
+    badges: List[str] = Field(default_factory=list)
+
     @field_validator(
         "opportunity_score",
         "demand_score",
