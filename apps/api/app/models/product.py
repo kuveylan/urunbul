@@ -56,10 +56,10 @@ class Product(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # İlişkiler
-    price_history: Mapped[List["PriceHistory"]] = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan", order_by="PriceHistory.timestamp")
-    alerts: Mapped[List["PriceAlert"]] = relationship("PriceAlert", back_populates="product", cascade="all, delete-orphan")
-    buybox_records: Mapped[List["BuyboxRecord"]] = relationship("BuyboxRecord", back_populates="product", cascade="all, delete-orphan", order_by="BuyboxRecord.timestamp")
-    stock_records: Mapped[List["StockRecord"]] = relationship("StockRecord", back_populates="product", cascade="all, delete-orphan", order_by="StockRecord.timestamp")
+    price_history: Mapped[List["PriceHistory"]] = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan", order_by="PriceHistory.timestamp", lazy="selectin")
+    alerts: Mapped[List["PriceAlert"]] = relationship("PriceAlert", back_populates="product", cascade="all, delete-orphan", lazy="selectin")
+    buybox_records: Mapped[List["BuyboxRecord"]] = relationship("BuyboxRecord", back_populates="product", cascade="all, delete-orphan", order_by="BuyboxRecord.timestamp", lazy="selectin")
+    stock_records: Mapped[List["StockRecord"]] = relationship("StockRecord", back_populates="product", cascade="all, delete-orphan", order_by="StockRecord.timestamp", lazy="selectin")
 
     __table_args__ = (
         Index("ix_marketplace_external_id", "marketplace", "external_id", unique=True),

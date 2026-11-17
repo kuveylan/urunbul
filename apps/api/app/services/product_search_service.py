@@ -171,14 +171,20 @@ class ProductSearchService:
                     if existing:
                         # Fiyat değiştiyse fiyat geçmişine ekle
                         if abs(existing.current_price - item.current_price) >= 0.5:
-                            db.add(
-                                PriceHistory(
-                                    product_id=existing.id,
-                                    price=item.current_price,
-                                    seller_name=item.seller_name,
-                                    timestamp=datetime.utcnow(),
-                                )
+                            ph = PriceHistory(
+                                product_id=existing.id,
+                                price=item.current_price,
+                                seller_name=item.seller_name,
+                                timestamp=datetime.utcnow(),
                             )
+                            db.add(ph)
+                            try:
+                                if existing.price_history is not None:
+                                    existing.price_history.append(ph)
+                                else:
+                                    existing.price_history = [ph]
+                            except Exception:
+                                pass
                         existing.title = item.title
                         existing.brand = item.brand
                         existing.current_price = item.current_price
@@ -198,6 +204,11 @@ class ProductSearchService:
                         existing.updated_at = datetime.utcnow()
                         results.append(existing)
                     else:
+                        ph = PriceHistory(
+                            price=item.current_price,
+                            seller_name=item.seller_name,
+                            timestamp=datetime.utcnow(),
+                        )
                         new_p = Product(
                             marketplace=item.marketplace,
                             external_id=str(item.external_id),
@@ -223,23 +234,20 @@ class ProductSearchService:
                             in_cart_count=in_cart,
                             created_at=datetime.utcnow(),
                             updated_at=datetime.utcnow(),
+                            price_history=[ph],
                         )
                         db.add(new_p)
                         await db.flush()
-
-                        db.add(
-                            PriceHistory(
-                                product_id=new_p.id,
-                                price=item.current_price,
-                                seller_name=item.seller_name,
-                                timestamp=datetime.utcnow(),
-                            )
-                        )
                         results.append(new_p)
                 except Exception:
                     continue
             else:
                 # DB yoksa geçici model nesnesi oluştur
+                ph = PriceHistory(
+                    price=item.current_price,
+                    seller_name=item.seller_name,
+                    timestamp=datetime.utcnow(),
+                )
                 p = Product(
                     id=len(results) + 1,
                     marketplace=item.marketplace,
@@ -266,6 +274,7 @@ class ProductSearchService:
                     is_tracked=False,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
+                    price_history=[ph],
                 )
                 results.append(p)
 

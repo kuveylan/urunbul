@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Any
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 
 class PriceHistoryItem(BaseModel):
@@ -128,6 +128,19 @@ class ProductResponse(ProductBase):
         if v is None or not isinstance(v, (list, tuple)):
             return []
         return list(v)
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_orm_unloaded(cls, data: Any) -> Any:
+        if hasattr(data, "__table__"):
+            from sqlalchemy import inspect as sa_inspect
+            try:
+                state = sa_inspect(data)
+                if state and "price_history" in state.unloaded:
+                    data.__dict__["price_history"] = []
+            except Exception:
+                pass
+        return data
 
     model_config = ConfigDict(from_attributes=True)
 
