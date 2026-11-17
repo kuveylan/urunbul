@@ -131,13 +131,6 @@ class ProductSearchService:
         except Exception as e:
             logger.warning(f"Paralel kazıma genel hatası: {e}")
 
-        if not scraped_items and mp != "trendyol":
-            # Hedef pazaryerinde sonuç bulunamazsa yedek olarak Trendyol dene
-            fallback_items = await run_scraper_safe(TrendyolScraper(), "Trendyol Fallback", limit)
-            if fallback_items:
-                scraped_items = fallback_items
-                cls.last_stats["trendyol"] = len(fallback_items)
-
         # Eğer canlı kazımadan ürün gelmediyse veritabanındaki ilgili önbelleği getir
         if not scraped_items and db:
             cached_fallback = await cls._check_cache(
@@ -353,6 +346,8 @@ class ProductSearchService:
                 .order_by(desc(Product.opportunity_score))
                 .limit(limit)
             )
+            if marketplace != "all":
+                fallback_stmt = fallback_stmt.where(Product.marketplace == marketplace)
             res_fb = await db.execute(fallback_stmt)
             products = list(res_fb.scalars().all())
 
@@ -529,24 +524,17 @@ class ProductSearchService:
                 page_items = []
 
             if not page_items:
-                # Eğer ilk sayfada bile ürün gelmediyse ve Trendyol değilse Trendyol yedeği dene
-                if page == 1 and mp != "trendyol":
-                    try:
-                        page_items = await asyncio.wait_for(
-                            TrendyolScraper().search(query=search_term, page=1, limit=24, min_price=min_price, max_price=max_price),
-                            timeout=8.0
-                        )
-                    except Exception:
-                        pass
-                if not page_items:
-                    # Sayfada ürün kalmadıysa döngüyü sonlandır
-                    break
+                # Sayfada ürün kalmadıysa döngüyü sonlandır
+                break
 
             total_scanned += len(page_items)
 
             # Ürünleri işle ve filtrelere göre eşleştir
             for it in page_items:
                 if it.current_price <= 0:
+                    continue
+                # Güvenlik: Yalnızca seçilen pazaryerinin ürünlerini al
+                if mp != "all" and it.marketplace != mp:
                     continue
                 k = f"{it.marketplace}:{it.external_id}"
                 if k in seen_ids:

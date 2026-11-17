@@ -589,9 +589,7 @@ export default function VigoRadarFilterPanel({
               { id: "amazon", label: "Amazon TR", code: "AMZ", badge: "bg-yellow-500/20 text-yellow-300" },
               { id: "n11", label: "N11", code: "N11", badge: "bg-purple-500/20 text-purple-300" },
             ].map((m) => {
-              const isActive =
-                selectedMarketplace.toLowerCase() === m.id ||
-                (m.id === "trendyol" && (selectedMarketplace === "all" || !selectedMarketplace));
+              const isActive = (selectedMarketplace || "trendyol").toLowerCase() === m.id;
               return (
                 <button
                   key={m.id}

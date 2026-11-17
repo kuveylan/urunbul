@@ -85,7 +85,7 @@ export default function HomePage() {
   const [totalPages, setTotalPages] = useState<number>(412);
   const [isDeepScan, setIsDeepScan] = useState<boolean>(true);
   const [currentCategory, setCurrentCategory] = useState<string>("Tüm Kategoriler");
-  const [selectedMarketplace, setSelectedMarketplace] = useState<string>("all");
+  const [selectedMarketplace, setSelectedMarketplace] = useState<string>("trendyol");
   const [scraperStats, setScraperStats] = useState<{ trendyol: number; hepsiburada: number; amazon: number; n11: number } | null>(null);
 
   // Kelime & Satıcı Verileri
@@ -340,7 +340,7 @@ export default function HomePage() {
   const fetchInitialProducts = async () => {
     setLoading(true);
     try {
-      const { data } = await resilientFetch<Product[]>(apiUrl("/api/v1/products/featured"), {
+      const { data } = await resilientFetch<Product[]>(apiUrl("/api/v1/products/featured?marketplace=trendyol"), {
         timeoutMs: 8000,
         retries: 1,
       });
@@ -353,7 +353,7 @@ export default function HomePage() {
       console.warn("Öne çıkan ürünler servisten alınamadı, canlı pazar araması başlatılıyor:", e);
     }
     // Sunucu havuzunda hazır öne çıkan ürün yoksa doğrudan gerçek canlı arama yap
-    await handleProductSearch("cok satanlar");
+    await handleProductSearch("cok satanlar", undefined, 1, false, "trendyol");
   };
 
   // 2. Cerebro & Magnet Kelime Analizi
@@ -571,9 +571,10 @@ export default function HomePage() {
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 selectedMarketplace={selectedMarketplace}
+                setSelectedMarketplace={setSelectedMarketplace}
                 onSearch={(q, cat, forceRefresh, mpOverride, criteria) => {
                   if (forceRefresh || criteria) {
-                    handleLiveStreamSearch(q, cat, mpOverride, criteria);
+                    handleLiveStreamSearch(q, cat, mpOverride || selectedMarketplace, criteria);
                   } else {
                     handleProductSearch(q, cat, 1, isDeepScan, mpOverride || selectedMarketplace, false);
                   }

@@ -93,6 +93,7 @@ interface BlackBoxViewProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   selectedMarketplace?: string;
+  setSelectedMarketplace?: (mp: string) => void;
   onSearch: (
     q?: string,
     category?: string,
@@ -136,7 +137,8 @@ export default function BlackBoxView({
   loading,
   searchQuery,
   setSearchQuery,
-  selectedMarketplace = "all",
+  selectedMarketplace: propMarketplace = "trendyol",
+  setSelectedMarketplace: propSetMarketplace,
   onSearch,
   onToggleTrack,
   onOpenPriceModal,
@@ -155,6 +157,16 @@ export default function BlackBoxView({
   onToggleDeepScan,
   scraperStats,
 }: BlackBoxViewProps) {
+  // Pazaryeri seçimi (Butona tıklandığında hemen arama BAŞLAMAZ, yalnızca seçim güncellenir)
+  const [localMarketplace, setLocalMarketplace] = useState<string>(propMarketplace || "trendyol");
+  const currentMarketplace = propMarketplace || localMarketplace;
+  const setMarketplace = propSetMarketplace || setLocalMarketplace;
+
+  const handleMarketplaceChange = (mp: string) => {
+    setMarketplace(mp);
+    setLocalMarketplace(mp);
+  };
+
   // Kategori seçimi
   const [localCategory, setLocalCategory] = useState("Tüm Kategoriler");
   const currentCategory = propCategory || localCategory;
@@ -236,12 +248,12 @@ export default function BlackBoxView({
     criteriaOverride?: VigoRadarFilterCriteria
   ) => {
     const cat = categoryOverride !== undefined ? categoryOverride : currentCategory;
-    const mp = marketplaceOverride !== undefined ? marketplaceOverride : selectedMarketplace;
+    const mp = marketplaceOverride !== undefined ? marketplaceOverride : currentMarketplace;
     const crit = criteriaOverride !== undefined ? criteriaOverride : appliedFilters;
     onSearch(searchQuery, cat, forceRefresh, mp, crit);
   };
 
-  // Filtre Panelinden "Ürünleri Keşfet"e tıklandığında
+  // Filtre Panelinden "Ürünleri Keşfet"e tıklandığında (Arama SADECE burada başlar!)
   const handleApplyRadarFilters = (criteria: VigoRadarFilterCriteria) => {
     setAppliedFilters(criteria);
 
@@ -263,7 +275,8 @@ export default function BlackBoxView({
       setCategory(targetCategory);
     }
 
-    triggerSearch(true, targetCategory, selectedMarketplace, criteria);
+    // Arama SADECE burada tetiklenir: Seçilen pazaryeri ve girilen filtrelerle!
+    triggerSearch(true, targetCategory, currentMarketplace, criteria);
   };
 
   const handleResetFilters = () => {
@@ -289,6 +302,15 @@ export default function BlackBoxView({
   // İstemci tarafı dinamik süzme, metrik hesaplama ve sıralama
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
+      // 0. Pazaryeri Uygunluğu: Seçili pazaryeriyle tam eşleşme (Trendyol seçiliyken ASLA Hepsiburada gösterilmez)
+      const pMp = (p.marketplace || "").toLowerCase();
+      const targetMp = (currentMarketplace || "trendyol").toLowerCase();
+      if (targetMp === "amazon" || targetMp === "amazon tr") {
+        if (!pMp.includes("amazon")) return false;
+      } else if (targetMp !== "all") {
+        if (pMp !== targetMp) return false;
+      }
+
       const f = appliedFilters;
 
       // 1. Satış & Performans Filtreleri
@@ -577,8 +599,8 @@ export default function BlackBoxView({
           onApplyFilters={handleApplyRadarFilters}
           onResetFilters={handleResetFilters}
           activeCount={activeFilterCount}
-          selectedMarketplace={selectedMarketplace || "trendyol"}
-          onMarketplaceChange={(mp) => triggerSearch(true, currentCategory, mp, appliedFilters)}
+          selectedMarketplace={currentMarketplace}
+          onMarketplaceChange={handleMarketplaceChange}
         />
       </div>
 

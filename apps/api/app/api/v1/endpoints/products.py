@@ -198,17 +198,22 @@ async def matchmaker_sample(
 
 @router.get("/featured", response_model=List[ProductResponse])
 async def get_featured_products(
+    marketplace: Optional[str] = Query("trendyol", description="Pazaryeri: trendyol, hepsiburada, amazon, n11"),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Sayfa açılışında gecikmesiz gösterilecek öne çıkan fırsat ürünleri.
     """
+    mp = (marketplace or "trendyol").lower().strip()
     stmt = (
         select(Product)
         .options(selectinload(Product.price_history))
         .order_by(desc(Product.opportunity_score))
         .limit(16)
     )
+    if mp != "all":
+        stmt = stmt.where(Product.marketplace == mp)
+
     res = await db.execute(stmt)
     products = list(res.scalars().all())
     if products and len(products) >= 4:
@@ -216,10 +221,10 @@ async def get_featured_products(
             ensure_product_scores(p)
         return products
 
-    # Eğer DB henüz boşsa, popüler başlangıç ürünlerini tara ve kaydet
+    # Eğer DB henüz boşsa, seçilen pazaryerinin popüler başlangıç ürünlerini tara ve kaydet
     return await ProductSearchService.search(
         query="trend",
-        marketplace="all",
+        marketplace=mp,
         page=1,
         limit=16,
         sort_by="opportunity",
