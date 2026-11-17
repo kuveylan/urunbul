@@ -25,9 +25,21 @@ class AmazonTrScraper(BaseMarketplaceScraper):
             "Sec-Fetch-User": "?1",
         }
 
-    async def search(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
+    async def search(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 24,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[ScrapedProductItem]:
         encoded = urllib.parse.quote_plus(query.strip())
-        url = f"https://www.amazon.com.tr/s?k={encoded}&page={page}"
+        price_param = ""
+        if min_price is not None:
+            price_param += f"&low-price={int(min_price)}"
+        if max_price is not None:
+            price_param += f"&high-price={int(max_price)}"
+        url = f"https://www.amazon.com.tr/s?k={encoded}&page={page}{price_param}"
         items: List[ScrapedProductItem] = []
 
         try:

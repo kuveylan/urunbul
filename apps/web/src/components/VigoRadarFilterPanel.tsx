@@ -377,6 +377,7 @@ export default function VigoRadarFilterPanel({
 }: VigoRadarFilterPanelProps) {
   const [filters, setFilters] = useState<VigoRadarFilterCriteria>(INITIAL_VIGO_FILTERS);
   const [isFieldsVisible, setIsFieldsVisible] = useState(true);
+  const [isDetailed, setIsDetailed] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
   // Filtre Kitaplığı Modal/Popover
@@ -581,62 +582,36 @@ export default function VigoRadarFilterPanel({
       <div className="vr-context-bar flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#0d1424] border border-slate-800 p-3 rounded-xl">
         <div className="vr-market-row flex items-center gap-2.5 flex-wrap">
           <span className="vr-label text-xs font-bold text-slate-400">Pazaryeri</span>
-          <div className="vr-market-tabs flex items-center gap-1.5 p-1 bg-[#060a14] border border-slate-800/80 rounded-lg">
-            <button
-              type="button"
-              aria-pressed={selectedMarketplace === "all" || selectedMarketplace === "tr"}
-              onClick={() => onMarketplaceChange("all")}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 ${
-                selectedMarketplace === "all" || selectedMarketplace === "tr"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              <span className="vr-country-code px-1.5 py-0.2 bg-blue-900/60 rounded text-[10px] font-extrabold text-blue-200">
-                TR
-              </span>
-              <span>Türkiye (Tüm Pazarlar)</span>
-            </button>
-
-            <button
-              type="button"
-              aria-pressed={selectedMarketplace === "amazon" || selectedMarketplace === "us"}
-              onClick={() => onMarketplaceChange("amazon")}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 ${
-                selectedMarketplace === "amazon" || selectedMarketplace === "us"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-              }`}
-            >
-              <span className="vr-country-code px-1.5 py-0.2 bg-amber-900/60 rounded text-[10px] font-extrabold text-amber-200">
-                US
-              </span>
-              <span>Amerika Birleşik Devletleri (Amazon)</span>
-            </button>
-          </div>
-
-          {/* Hızlı Pazaryeri Filtre Hapları */}
-          <div className="hidden lg:flex items-center gap-1 pl-2 border-l border-slate-800 text-[11px]">
+          <div className="vr-market-tabs flex items-center gap-1.5 p-1 bg-[#060a14] border border-slate-800/80 rounded-xl flex-wrap">
             {[
-              { id: "all", label: "Tümü" },
-              { id: "trendyol", label: "Trendyol" },
-              { id: "hepsiburada", label: "Hepsiburada" },
-              { id: "amazon", label: "Amazon TR" },
-              { id: "n11", label: "N11" },
-            ].map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onMarketplaceChange(m.id)}
-                className={`px-2 py-0.5 rounded font-semibold transition ${
-                  selectedMarketplace === m.id
-                    ? "bg-slate-700 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
+              { id: "trendyol", label: "Trendyol", code: "TY", badge: "bg-orange-500/20 text-orange-300" },
+              { id: "hepsiburada", label: "Hepsiburada", code: "HB", badge: "bg-amber-500/20 text-amber-300" },
+              { id: "amazon", label: "Amazon TR", code: "AMZ", badge: "bg-yellow-500/20 text-yellow-300" },
+              { id: "n11", label: "N11", code: "N11", badge: "bg-purple-500/20 text-purple-300" },
+            ].map((m) => {
+              const isActive =
+                selectedMarketplace.toLowerCase() === m.id ||
+                (m.id === "trendyol" && (selectedMarketplace === "all" || !selectedMarketplace));
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => onMarketplaceChange(m.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-md ring-1 ring-blue-400"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-extrabold ${m.badge}`}>
+                    {m.code}
+                  </span>
+                  <span>{m.label}</span>
+                  {isActive && <Check className="w-3.5 h-3.5 text-blue-200 ml-0.5" />}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -893,20 +868,22 @@ export default function VigoRadarFilterPanel({
           )}
         </div>
 
-        {/* Temel Filtreler & Filtreleri Gizle / Göster Butonları */}
+        {/* Temel / Detaylı Filtreler & Filtreleri Gizle / Göster Butonları */}
         <div className="flex items-center gap-2 justify-end">
           <button
             type="button"
-            className="vr-collapse px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0d1424] text-slate-300 border border-slate-800 hover:text-white transition"
+            onClick={() => setIsDetailed(!isDetailed)}
+            className="vr-collapse px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0d1424] text-slate-300 border border-slate-800 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 shadow-xs"
           >
-            Temel filtreler
+            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isDetailed ? "Temel filtreler" : "Detaylı filtreler"}</span>
           </button>
           <button
             type="button"
             onClick={() => setIsFieldsVisible(!isFieldsVisible)}
             className="vr-collapse px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0d1424] text-slate-300 border border-slate-800 hover:text-white transition flex items-center gap-1.5"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+            <Filter className="w-3.5 h-3.5 text-blue-400" />
             <span>{isFieldsVisible ? "Filtreleri gizle" : "Filtreleri göster"}</span>
             {activeCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
@@ -933,7 +910,7 @@ export default function VigoRadarFilterPanel({
                 <span>Satış &amp; performans</span>
               </h3>
 
-              {/* Varyasyon Satışı */}
+              {/* 1. Varyasyon Satışı */}
               <fieldset className="vr-range-field">
                 <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
                   <span>Varyasyon satışı · tahmini</span>
@@ -960,65 +937,68 @@ export default function VigoRadarFilterPanel({
                 </div>
               </fieldset>
 
-              {/* Aile Satışı */}
-              <fieldset className="vr-range-field">
-                <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
-                  <span>Aile satışı · tahmini</span>
-                  <span className="text-[10px] text-slate-500 font-mono">adet</span>
-                </legend>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Min"
-                    value={filters.minFamilySales}
-                    onChange={(e) => handleFieldChange("minFamilySales", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                  <span className="text-slate-600">—</span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Max"
-                    value={filters.maxFamilySales}
-                    onChange={(e) => handleFieldChange("maxFamilySales", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </fieldset>
+              {/* Detaylı Modda: 2. Aile Satışı & 3. Aile Cirosu */}
+              {isDetailed && (
+                <>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Aile satışı · tahmini</span>
+                      <span className="text-[10px] text-slate-500 font-mono">adet</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={filters.minFamilySales}
+                        onChange={(e) => handleFieldChange("minFamilySales", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={filters.maxFamilySales}
+                        onChange={(e) => handleFieldChange("maxFamilySales", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
 
-              {/* Aile Aylık Cirosu */}
-              <fieldset className="vr-range-field">
-                <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
-                  <span>Aile aylık cirosu · tahmini</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{selectedMarketplace === "amazon" ? "$" : "₺"}</span>
-                </legend>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Min"
-                    value={filters.minRevenue}
-                    onChange={(e) => handleFieldChange("minRevenue", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                  <span className="text-slate-600">—</span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Max"
-                    value={filters.maxRevenue}
-                    onChange={(e) => handleFieldChange("maxRevenue", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </fieldset>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Aile aylık cirosu · tahmini</span>
+                      <span className="text-[10px] text-slate-500 font-mono">₺</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={filters.minRevenue}
+                        onChange={(e) => handleFieldChange("minRevenue", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={filters.maxRevenue}
+                        onChange={(e) => handleFieldChange("maxRevenue", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+                </>
+              )}
 
-              {/* Satış Fiyatı */}
+              {/* 4. Satış Fiyatı */}
               <fieldset className="vr-range-field">
                 <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
                   <span>Satış fiyatı</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{selectedMarketplace === "amazon" ? "$" : "₺"}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">₺</span>
                 </legend>
                 <div className="flex items-center gap-1.5">
                   <input
@@ -1041,63 +1021,66 @@ export default function VigoRadarFilterPanel({
                 </div>
               </fieldset>
 
-              {/* İndirim Öncesi Fiyat */}
-              <fieldset className="vr-range-field">
-                <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
-                  <span>İndirim öncesi fiyat</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{selectedMarketplace === "amazon" ? "$" : "₺"}</span>
-                </legend>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Min"
-                    value={filters.minOriginalPrice}
-                    onChange={(e) => handleFieldChange("minOriginalPrice", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                  <span className="text-slate-600">—</span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Max"
-                    value={filters.maxOriginalPrice}
-                    onChange={(e) => handleFieldChange("maxOriginalPrice", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </fieldset>
+              {/* Detaylı Modda: 5. İndirim Öncesi Fiyat & 6. İndirim Oranı */}
+              {isDetailed && (
+                <>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>İndirim öncesi fiyat</span>
+                      <span className="text-[10px] text-slate-500 font-mono">₺</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={filters.minOriginalPrice}
+                        onChange={(e) => handleFieldChange("minOriginalPrice", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={filters.maxOriginalPrice}
+                        onChange={(e) => handleFieldChange("maxOriginalPrice", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
 
-              {/* İndirim Oranı */}
-              <fieldset className="vr-range-field">
-                <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
-                  <span>İndirim oranı</span>
-                  <span className="text-[10px] text-slate-500 font-mono">%</span>
-                </legend>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="Min"
-                    value={filters.minDiscountPercent}
-                    onChange={(e) => handleFieldChange("minDiscountPercent", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                  <span className="text-slate-600">—</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="Max"
-                    value={filters.maxDiscountPercent}
-                    onChange={(e) => handleFieldChange("maxDiscountPercent", e.target.value)}
-                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </fieldset>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>İndirim oranı</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Min"
+                        value={filters.minDiscountPercent}
+                        onChange={(e) => handleFieldChange("minDiscountPercent", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Max"
+                        value={filters.maxDiscountPercent}
+                        onChange={(e) => handleFieldChange("maxDiscountPercent", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+                </>
+              )}
 
-              {/* Çok Satanlar Sırası (BSR) */}
+              {/* 7. Çok Satanlar Sırası (BSR) */}
               <fieldset className="vr-range-field">
                 <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
                   <span>Çok satanlar sırası (BSR)</span>
@@ -1124,7 +1107,7 @@ export default function VigoRadarFilterPanel({
                 </div>
               </fieldset>
 
-              {/* Satış / Yorum Oranı */}
+              {/* 8. Satış / Yorum Oranı */}
               <fieldset className="vr-range-field">
                 <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
                   <span>Satış / yorum oranı</span>
@@ -1153,8 +1136,169 @@ export default function VigoRadarFilterPanel({
                 </div>
               </fieldset>
 
+              {/* Detaylı Modda: 9. Varyasyon Satış Kapsamı, 10. Satış Değişimi, 11. Satış Alt Sınırı Değişimi */}
+              {isDetailed && (
+                <>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Varyasyon satış kapsamı</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Min"
+                        value={filters.minVariationCoverage}
+                        onChange={(e) => handleFieldChange("minVariationCoverage", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Max"
+                        value={filters.maxVariationCoverage}
+                        onChange={(e) => handleFieldChange("maxVariationCoverage", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Satış değişimi · 30 gün</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={filters.minSalesGrowth30d}
+                        onChange={(e) => handleFieldChange("minSalesGrowth30d", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={filters.maxSalesGrowth30d}
+                        onChange={(e) => handleFieldChange("maxSalesGrowth30d", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Satış alt sınırı değişimi · 30 gün</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={filters.minSalesLowerBoundGrowth}
+                        onChange={(e) => handleFieldChange("minSalesLowerBoundGrowth", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={filters.maxSalesLowerBoundGrowth}
+                        onChange={(e) => handleFieldChange("maxSalesLowerBoundGrowth", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+                </>
+              )}
+
+              {/* 12. Alt Kategori BSR */}
+              <fieldset className="vr-range-field">
+                <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                  <span>Alt kategori BSR</span>
+                  <span className="text-[10px] text-slate-500 font-mono">#</span>
+                </legend>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Min"
+                    value={filters.minSubcategoryBsr}
+                    onChange={(e) => handleFieldChange("minSubcategoryBsr", e.target.value)}
+                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-slate-600">—</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Max"
+                    value={filters.maxSubcategoryBsr}
+                    onChange={(e) => handleFieldChange("maxSubcategoryBsr", e.target.value)}
+                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </fieldset>
+
+              {/* Detaylı Modda: 13. BSR İyileşmesi & 14. BSR İyileşme Oranı */}
+              {isDetailed && (
+                <>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>BSR iyileşmesi</span>
+                      <span className="text-[10px] text-slate-500 font-mono">#</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={filters.minBsrImprovement}
+                        onChange={(e) => handleFieldChange("minBsrImprovement", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={filters.maxBsrImprovement}
+                        onChange={(e) => handleFieldChange("maxBsrImprovement", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>BSR iyileşme oranı</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={filters.minBsrImprovementRatio}
+                        onChange={(e) => handleFieldChange("minBsrImprovementRatio", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={filters.maxBsrImprovementRatio}
+                        onChange={(e) => handleFieldChange("maxBsrImprovementRatio", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+                </>
+              )}
+
               <p className="vr-field-note text-[10px] text-slate-500 pt-1 leading-relaxed">
-                Varyasyon satışı tek bir varyasyonun aylık tahminidir. Aile satışı ailedeki tüm varyasyonların toplamıdır.
+                Varyasyon satışı tek bir varyasyonun aylık satış tahminidir. Aile satışı, aynı pazar ve dönemde ailedeki varyasyonların toplamıdır; eksik aile verisi tamamlanmış toplam sayılmaz.
               </p>
             </section>
 
@@ -1250,6 +1394,33 @@ export default function VigoRadarFilterPanel({
                 </div>
               </fieldset>
 
+              {/* Ürün Görsel Sayısı */}
+              <fieldset className="vr-range-field">
+                <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                  <span>Ürün görsel sayısı</span>
+                  <span className="text-[10px] text-slate-500 font-mono">adet</span>
+                </legend>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Min"
+                    value={filters.minImageCount}
+                    onChange={(e) => handleFieldChange("minImageCount", e.target.value)}
+                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-slate-600">—</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Max"
+                    value={filters.maxImageCount}
+                    onChange={(e) => handleFieldChange("maxImageCount", e.target.value)}
+                    className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </fieldset>
+
               {/* Pazarda Yayında Olduğu Süre */}
               <fieldset className="vr-range-field">
                 <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
@@ -1306,17 +1477,123 @@ export default function VigoRadarFilterPanel({
                 </div>
               </fieldset>
 
-              {/* Yorum Konusu */}
-              <label className="block text-[11px] font-semibold text-slate-300">
-                <span>Yorum konusu</span>
-                <input
-                  type="text"
-                  placeholder="Örn. dayanıklılık, kalite"
-                  value={filters.reviewTopic}
-                  onChange={(e) => handleFieldChange("reviewTopic", e.target.value)}
-                  className="mt-1 w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
-                />
-              </label>
+              {/* Detaylı Modda: Yorum Sayısı Artışı, Puan Değişimi, En Sık Olumsuz Konu Oranı, Yorum Konusu */}
+              {isDetailed && (
+                <>
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Yorum sayısı artışı</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={filters.minReviewGrowth}
+                        onChange={(e) => handleFieldChange("minReviewGrowth", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={filters.maxReviewGrowth}
+                        onChange={(e) => handleFieldChange("maxReviewGrowth", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Puan değişimi</span>
+                      <span className="text-[10px] text-slate-500 font-mono">/ 5</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Min"
+                        value={filters.minRatingChange}
+                        onChange={(e) => handleFieldChange("minRatingChange", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Max"
+                        value={filters.maxRatingChange}
+                        onChange={(e) => handleFieldChange("maxRatingChange", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>En sık olumsuz konu oranı</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={filters.minNegativeTopicPct}
+                        onChange={(e) => handleFieldChange("minNegativeTopicPct", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={filters.maxNegativeTopicPct}
+                        onChange={(e) => handleFieldChange("maxNegativeTopicPct", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <label className="block text-[11px] font-semibold text-slate-300">
+                    <span>Yorum konusu</span>
+                    <input
+                      type="text"
+                      placeholder="Örn. dayanıklılık, kalite"
+                      value={filters.reviewTopic}
+                      onChange={(e) => handleFieldChange("reviewTopic", e.target.value)}
+                      className="mt-1 w-full bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                    />
+                  </label>
+                </>
+              )}
+
+              {/* Hızlı Yaş Filtreleri (30 gün, 6 ay, 1 yıl) */}
+              <div className="flex items-center gap-1.5 pt-1">
+                {[
+                  { label: "30 gün", val: "30" },
+                  { label: "6 ay", val: "180" },
+                  { label: "1 yıl", val: "365" },
+                ].map((preset) => (
+                  <button
+                    key={preset.val}
+                    type="button"
+                    onClick={() => {
+                      if (filters.maxDaysOnMarket === preset.val) {
+                        handleFieldChange("maxDaysOnMarket", "");
+                      } else {
+                        handleFieldChange("maxDaysOnMarket", preset.val);
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded text-[11px] font-bold border transition ${
+                      filters.maxDaysOnMarket === preset.val
+                        ? "bg-blue-600 text-white border-blue-500"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
 
               {/* Ürün Rozetleri */}
               <div>
@@ -1576,7 +1853,7 @@ export default function VigoRadarFilterPanel({
               <fieldset className="vr-range-field">
                 <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
                   <span>Kargo dahil fiyat</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{selectedMarketplace === "amazon" ? "$" : "₺"}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">₺</span>
                 </legend>
                 <div className="flex items-center gap-1.5">
                   <input
@@ -1598,6 +1875,110 @@ export default function VigoRadarFilterPanel({
                   />
                 </div>
               </fieldset>
+
+              {/* Detaylı Modda: Boyutlar, Komisyon ve Maliyet Varsayımları */}
+              {isDetailed && (
+                <>
+                  {/* Paket Boyutları */}
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Paket uzunluğu</span>
+                      <span className="text-[10px] text-slate-500 font-mono">cm</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={filters.minLengthCm}
+                        onChange={(e) => handleFieldChange("minLengthCm", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={filters.maxLengthCm}
+                        onChange={(e) => handleFieldChange("maxLengthCm", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  {/* Satış Komisyonu */}
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Satış komisyonu · tahmini</span>
+                      <span className="text-[10px] text-slate-500 font-mono">₺</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={filters.minReferralFee}
+                        onChange={(e) => handleFieldChange("minReferralFee", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={filters.maxReferralFee}
+                        onChange={(e) => handleFieldChange("maxReferralFee", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  {/* Ücret / Fiyat Oranı */}
+                  <fieldset className="vr-range-field">
+                    <legend className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                      <span>Ücret / fiyat oranı</span>
+                      <span className="text-[10px] text-slate-500 font-mono">%</span>
+                    </legend>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Min"
+                        value={filters.minFeeRatio}
+                        onChange={(e) => handleFieldChange("minFeeRatio", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-slate-600">—</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Max"
+                        value={filters.maxFeeRatio}
+                        onChange={(e) => handleFieldChange("maxFeeRatio", e.target.value)}
+                        className="w-1/2 bg-[#060913] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </fieldset>
+
+                  {/* Maliyet Varsayımları */}
+                  <fieldset className="vr-cost-scenario bg-[#060913] border border-slate-800 rounded-lg p-2.5 space-y-2">
+                    <legend className="text-[10px] font-bold text-slate-400">Marj için maliyet varsayımları</legend>
+                    <label className="block text-[10px] text-slate-400">
+                      <span>Birim ürün maliyeti (₺)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={filters.unitProductCost}
+                        onChange={(e) => handleFieldChange("unitProductCost", e.target.value)}
+                        className="mt-0.5 w-full bg-[#090e1a] border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                      />
+                    </label>
+                  </fieldset>
+                </>
+              )}
 
               {/* Gönderim Yöntemi */}
               <div>
@@ -1635,22 +2016,6 @@ export default function VigoRadarFilterPanel({
                 />
                 <span>Yalnızca Prime / Hızlı Teslimat</span>
               </label>
-
-              {/* Maliyet Varsayımları */}
-              <fieldset className="vr-cost-scenario bg-[#060913] border border-slate-800 rounded-lg p-2.5 space-y-2">
-                <legend className="text-[10px] font-bold text-slate-400">Marj için maliyet varsayımları</legend>
-                <label className="block text-[10px] text-slate-400">
-                  <span>Birim ürün maliyeti ({selectedMarketplace === "amazon" ? "$" : "₺"})</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={filters.unitProductCost}
-                    onChange={(e) => handleFieldChange("unitProductCost", e.target.value)}
-                    className="mt-0.5 w-full bg-[#090e1a] border border-slate-700 rounded px-2 py-1 text-white text-xs"
-                  />
-                </label>
-              </fieldset>
             </section>
           </div>
         </div>

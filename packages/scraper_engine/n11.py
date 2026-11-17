@@ -25,9 +25,21 @@ class N11Scraper(BaseMarketplaceScraper):
             "Sec-Fetch-User": "?1",
         }
 
-    async def search(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
+    async def search(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 24,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[ScrapedProductItem]:
         encoded = urllib.parse.quote_plus(query.strip())
-        url = f"https://www.n11.com/arama?q={encoded}&pg={page}"
+        price_param = ""
+        if min_price is not None:
+            price_param += f"&minPrice={int(min_price)}"
+        if max_price is not None:
+            price_param += f"&maxPrice={int(max_price)}"
+        url = f"https://www.n11.com/arama?q={encoded}&pg={page}{price_param}"
         items: List[ScrapedProductItem] = []
 
         try:

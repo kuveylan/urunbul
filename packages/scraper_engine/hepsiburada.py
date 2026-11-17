@@ -25,9 +25,21 @@ class HepsiburadaScraper(BaseMarketplaceScraper):
             "Sec-Fetch-User": "?1",
         }
 
-    async def search(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
+    async def search(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 24,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[ScrapedProductItem]:
         encoded = urllib.parse.quote_plus(query.strip())
-        url = f"https://www.hepsiburada.com/ara?q={encoded}&sayfa={page}"
+        price_param = ""
+        if min_price is not None or max_price is not None:
+            p_min = int(min_price) if min_price else 0
+            p_max = int(max_price) if max_price else ""
+            price_param = f"&fiyat={p_min}-{p_max}"
+        url = f"https://www.hepsiburada.com/ara?q={encoded}&sayfa={page}{price_param}"
         items: List[ScrapedProductItem] = []
 
         try:

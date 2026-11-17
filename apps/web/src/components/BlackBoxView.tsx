@@ -93,7 +93,13 @@ interface BlackBoxViewProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   selectedMarketplace?: string;
-  onSearch: (q?: string, category?: string, forceRefresh?: boolean) => void;
+  onSearch: (
+    q?: string,
+    category?: string,
+    forceRefresh?: boolean,
+    marketplaceOverride?: string,
+    criteria?: VigoRadarFilterCriteria
+  ) => void;
   onToggleTrack: (product: Product) => void;
   onOpenPriceModal: (product: Product) => void;
   onOpenProfitModal: (product: Product) => void;
@@ -223,9 +229,16 @@ export default function BlackBoxView({
   }, [appliedFilters]);
 
   // Arama Tetikleyici (Kategori veya Kelime ile)
-  const triggerSearch = (forceRefresh: boolean = false, categoryOverride?: string) => {
+  const triggerSearch = (
+    forceRefresh: boolean = false,
+    categoryOverride?: string,
+    marketplaceOverride?: string,
+    criteriaOverride?: VigoRadarFilterCriteria
+  ) => {
     const cat = categoryOverride !== undefined ? categoryOverride : currentCategory;
-    onSearch(searchQuery, cat, forceRefresh);
+    const mp = marketplaceOverride !== undefined ? marketplaceOverride : selectedMarketplace;
+    const crit = criteriaOverride !== undefined ? criteriaOverride : appliedFilters;
+    onSearch(searchQuery, cat, forceRefresh, mp, crit);
   };
 
   // Filtre Panelinden "Ürünleri Keşfet"e tıklandığında
@@ -250,7 +263,7 @@ export default function BlackBoxView({
       setCategory(targetCategory);
     }
 
-    triggerSearch(false, targetCategory);
+    triggerSearch(true, targetCategory, selectedMarketplace, criteria);
   };
 
   const handleResetFilters = () => {
@@ -564,8 +577,8 @@ export default function BlackBoxView({
           onApplyFilters={handleApplyRadarFilters}
           onResetFilters={handleResetFilters}
           activeCount={activeFilterCount}
-          selectedMarketplace={selectedMarketplace}
-          onMarketplaceChange={(mp) => onSearch(searchQuery, currentCategory, false)}
+          selectedMarketplace={selectedMarketplace || "trendyol"}
+          onMarketplaceChange={(mp) => triggerSearch(true, currentCategory, mp, appliedFilters)}
         />
       </div>
 

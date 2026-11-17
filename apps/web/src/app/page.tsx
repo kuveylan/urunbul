@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Sidebar, { NavView } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import BlackBoxView, { Product } from "@/components/BlackBoxView";
@@ -22,6 +22,8 @@ import LandingShowcaseView from "@/components/LandingShowcaseView";
 import LegalTermsModal from "@/components/LegalTermsModal";
 import BottomNavigationBar from "@/components/BottomNavigationBar";
 import AdBanner from "@/components/AdBanner";
+import LiveRadarScanModal, { LiveRadarProgress } from "@/components/LiveRadarScanModal";
+import { VigoRadarFilterCriteria } from "@/components/VigoRadarFilterPanel";
 import { useAuth } from "@/context/AuthContext";
 import { apiUrl, getAuthHeaders, resilientFetch } from "@/lib/api";
 
@@ -101,6 +103,126 @@ export default function HomePage() {
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+
+  // Canlı SSE Çok Sayfalı Pazar Radarı Durumları
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState<LiveRadarProgress | null>(null);
+  const sseRef = useRef<EventSource | null>(null);
+
+  const handleLiveStreamSearch = (
+    overrideQuery?: string,
+    category?: string,
+    marketplaceOverride?: string,
+    criteria?: VigoRadarFilterCriteria
+  ) => {
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+
+    const rawQ = overrideQuery !== undefined ? overrideQuery : searchQuery;
+    const cat = category !== undefined ? category : currentCategory;
+    const mp = marketplaceOverride !== undefined ? marketplaceOverride : selectedMarketplace;
+    const effectiveMp = !mp || mp === "all" ? "trendyol" : mp;
+
+    if (category !== undefined) setCurrentCategory(category);
+    if (marketplaceOverride !== undefined) setSelectedMarketplace(marketplaceOverride);
+
+    const effectiveQ = rawQ.trim() || (cat && cat !== "Tüm Kategoriler" ? cat : "cok satanlar");
+
+    const params = new URLSearchParams();
+    params.set("q", effectiveQ);
+    params.set("marketplace", effectiveMp);
+    if (cat && cat !== "Tüm Kategoriler") params.set("category", cat);
+    if (criteria?.minPrice) params.set("min_price", criteria.minPrice);
+    if (criteria?.maxPrice) params.set("max_price", criteria.maxPrice);
+    if (criteria?.minSales) params.set("min_sales", criteria.minSales);
+    params.set("max_pages", "8");
+    params.set("target_count", "36");
+
+    const streamUrl = apiUrl(`/api/v1/products/search/stream?${params.toString()}`);
+
+    setIsScanning(true);
+    setErrorMessage("");
+    setScanProgress({
+      page: 1,
+      max_pages: 8,
+      scanned: 0,
+      matched: 0,
+      marketplace: effectiveMp.toUpperCase(),
+      message: "Dünden kalan bayat yemek yok, anlık sıcacık kazıyoruz...",
+      products_so_far: [],
+    });
+
+    try {
+      const es = new EventSource(streamUrl);
+      sseRef.current = es;
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "progress") {
+            setScanProgress((prev) => ({
+              page: data.page,
+              max_pages: data.max_pages,
+              scanned: data.scanned,
+              matched: data.matched,
+              marketplace: data.marketplace,
+              message: data.message,
+              products_so_far: data.products_so_far || prev?.products_so_far || [],
+            }));
+          } else if (data.type === "complete") {
+            if (data.products && data.products.length > 0) {
+              setProducts(data.products);
+              setTotalScannedVolume(data.scanned || data.products.length * 35);
+              setTotalPages(Math.max(1, Math.ceil((data.scanned || 100) / 36)));
+            }
+            setIsScanning(false);
+            es.close();
+            sseRef.current = null;
+            decrementSearchQuota();
+          } else if (data.type === "error") {
+            console.warn("SSE Akış hatası:", data.message);
+            setIsScanning(false);
+            es.close();
+            sseRef.current = null;
+          }
+        } catch (err) {
+          console.error("SSE JSON parse hatası:", err);
+        }
+      };
+
+      es.onerror = (err) => {
+        console.warn("SSE bağlantısı kapandı:", err);
+        setIsScanning(false);
+        es.close();
+        sseRef.current = null;
+      };
+    } catch (e: any) {
+      console.error("SSE başlatılamadı, standart aramaya geçiliyor:", e);
+      setIsScanning(false);
+      handleProductSearch(rawQ, cat, 1, isDeepScan, effectiveMp, true);
+    }
+  };
+
+  const handleStopAndShow = () => {
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+    if (scanProgress?.products_so_far && scanProgress.products_so_far.length > 0) {
+      setProducts(scanProgress.products_so_far);
+    }
+    setIsScanning(false);
+  };
+
+  const handleCancelScan = () => {
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+    setIsScanning(false);
+  };
 
   // 1. Ürün Arama & Canlı Pazar Taraması
   const handleProductSearch = async (
@@ -449,7 +571,13 @@ export default function HomePage() {
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 selectedMarketplace={selectedMarketplace}
-                onSearch={(q, cat, forceRefresh) => handleProductSearch(q, cat, 1, isDeepScan, selectedMarketplace, forceRefresh)}
+                onSearch={(q, cat, forceRefresh, mpOverride, criteria) => {
+                  if (forceRefresh || criteria) {
+                    handleLiveStreamSearch(q, cat, mpOverride, criteria);
+                  } else {
+                    handleProductSearch(q, cat, 1, isDeepScan, mpOverride || selectedMarketplace, false);
+                  }
+                }}
                 onToggleTrack={handleToggleTrack}
                 onOpenPriceModal={(p) => setSelectedProductForModal(p)}
                 onOpenProfitModal={(p) => setCalcProduct(p)}
@@ -620,6 +748,14 @@ export default function HomePage() {
         isOpen={!!legalModalTab}
         initialTab={legalModalTab || "terms"}
         onClose={() => setLegalModalTab(null)}
+      />
+
+      {/* DataVigo VigoRadar Canlı Çok Sayfalı Kazıma Modalı */}
+      <LiveRadarScanModal
+        isOpen={isScanning}
+        progress={scanProgress}
+        onStopAndShow={handleStopAndShow}
+        onCancel={handleCancelScan}
       />
     </div>
   );

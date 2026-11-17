@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 import random
+import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
@@ -328,6 +330,54 @@ async def get_recommended_products(
         }
         response.append(p_dict)
     return response
+
+
+@router.get("/search/stream")
+async def search_products_stream(
+    q: Optional[str] = Query("", description="Arama kelimesi"),
+    category: Optional[str] = Query(None, description="Kategori"),
+    marketplace: str = Query("trendyol", description="Pazaryeri: trendyol, hepsiburada, amazon, n11"),
+    min_price: Optional[float] = Query(None, description="Min fiyat"),
+    max_price: Optional[float] = Query(None, description="Maks fiyat"),
+    min_sales: Optional[int] = Query(None, description="Min tahmini satış"),
+    min_opportunity: Optional[float] = Query(None, description="Min fırsat puanı"),
+    target_count: int = Query(36, description="Hedeflenen fırsat ürünü adedi"),
+    max_pages: int = Query(8, description="Taranacak maksimum sayfa sayısı (1-10)"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    DataVigo VigoRadar Canlı Çok Sayfalı SSE (Server-Sent Events) Akış Motoru.
+    Her sayfada taranan ürün ve bulunan fırsat sayısını gerçek zamanlı olarak ekrana akar.
+    """
+    async def event_generator():
+        try:
+            async for chunk in ProductSearchService.search_stream(
+                query=q or "",
+                marketplace=marketplace or "trendyol",
+                category=category,
+                min_price=min_price,
+                max_price=max_price,
+                min_sales=min_sales,
+                min_opportunity=min_opportunity,
+                target_count=target_count,
+                max_pages=min(10, max(1, max_pages)),
+                db=db,
+            ):
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            err_payload = {"type": "error", "message": f"Canlı tarama hatası: {str(e)}"}
+            yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
 
 
 @router.get("/search", response_model=List[ProductResponse])

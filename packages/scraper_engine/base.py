@@ -27,7 +27,14 @@ class BaseMarketplaceScraper(ABC):
         self.marketplace_name = marketplace_name
 
     @abstractmethod
-    async def search(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
+    async def search(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 24,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[ScrapedProductItem]:
         """Belirtilen sorguda pazaryerini tarayıp normalize edilmiş ürünleri döner."""
         pass
 

@@ -26,9 +26,18 @@ class TrendyolScraper(BaseMarketplaceScraper):
             "Referer": "https://www.trendyol.com/",
         }
 
-    async def search(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
+    async def search(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 24,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[ScrapedProductItem]:
         # 1. Öncelikle hafif ve ultra hızlı HTTP Gateway / HTML araması yap (bulut sunucuları ve Render için)
-        items = await self._search_http(query=query, page=page, limit=limit)
+        items = await self._search_http(
+            query=query, page=page, limit=limit, min_price=min_price, max_price=max_price
+        )
         if items:
             return items
 
@@ -65,9 +74,21 @@ class TrendyolScraper(BaseMarketplaceScraper):
 
         return items
 
-    async def _search_http(self, query: str, page: int = 1, limit: int = 24) -> List[ScrapedProductItem]:
+    async def _search_http(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 24,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[ScrapedProductItem]:
         encoded = urllib.parse.quote_plus(query.strip())
-        gw_url = f"https://public.trendyol.com/discovery-web-searchgw-service/v2/api/infinite-scroll/sr?q={encoded}&pi={page}&culture=tr-TR"
+        prc_param = ""
+        if min_price is not None or max_price is not None:
+            p_min = int(min_price) if min_price else 0
+            p_max = int(max_price) if max_price else ""
+            prc_param = f"&prc={p_min}-{p_max}"
+        gw_url = f"https://public.trendyol.com/discovery-web-searchgw-service/v2/api/infinite-scroll/sr?q={encoded}&pi={page}&culture=tr-TR{prc_param}"
         items: List[ScrapedProductItem] = []
 
         try:
