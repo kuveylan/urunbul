@@ -571,7 +571,7 @@ export default function BlackBoxView({
               {(totalScannedVolume || 14850).toLocaleString("tr-TR")}+ Ürün Analiz Edildi
             </span>
             <span className="text-xs text-slate-400">
-              (Pazardaki {Math.max(0, (totalScannedVolume || 14850) - products.length).toLocaleString("tr-TR")} düşük kârlı ürün elendi, en yüksek fırsatlı {products.length} ürün listeleniyor)
+              ({products.length} ürün tarandı{filteredProducts.length < products.length ? `, ${filteredProducts.length} filtre kriteriyle gösteriliyor` : ""})
             </span>
           </div>
         </div>
@@ -589,7 +589,18 @@ export default function BlackBoxView({
               }`}
             >
               <Zap className={`w-4 h-4 ${isDeepScan ? "text-slate-950" : "text-amber-400"}`} />
-              {isDeepScan ? "⚡ Derin Tarama Aktif (100+ Ürün)" : "⚡ 3 Sayfa Derin Tara"}
+              {isDeepScan ? "⚡ Derin Tarama Aktif" : "⚡ Derin Tarama Kapalı"}
+            </button>
+          )}
+          {onPageChange && currentPage < totalPages && (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => onPageChange(currentPage + 1)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 disabled:opacity-50"
+            >
+              <Layers className="w-4 h-4" />
+              {loading ? "Yükleniyor..." : `+Daha Fazla Ürün (${products.length} yüklü)`}
             </button>
           )}
         </div>
@@ -1532,48 +1543,27 @@ export default function BlackBoxView({
             </table>
           </div>
 
-          {/* 3. GERÇEK SAYFALAMA VE BÜYÜK VERİ GEZGİNİ */}
-          {totalPages > 1 && onPageChange && (
+          {/* 3. DAHA FAZLA ÜRÜN YÜKLE (Append Mode Pagination) */}
+          {onPageChange && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80 pt-4 mt-2 px-2">
               <span className="text-xs text-slate-400">
-                Sayfa <strong className="text-white">{currentPage}</strong> / {totalPages} (Taranan Pazar Hacmi: <strong className="text-blue-400">{(totalScannedVolume || 14850).toLocaleString("tr-TR")} Ürün</strong>)
+                <strong className="text-white">{products.length}</strong> ürün listeleniyor
+                {filteredProducts.length < products.length && (
+                  <> · <strong className="text-blue-400">{filteredProducts.length}</strong> filtre sonucu</>
+                )}
+                {" "}· Toplam pazar hacmi: <strong className="text-blue-400">{(totalScannedVolume || 14850).toLocaleString("tr-TR")}+</strong>
               </span>
-              <div className="flex items-center gap-1.5">
+              {currentPage < totalPages && (
                 <button
                   type="button"
-                  disabled={currentPage <= 1 || loading}
-                  onClick={() => onPageChange(currentPage - 1)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 disabled:opacity-40 transition"
-                >
-                  Önceki
-                </button>
-                {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                  const pNum = i + 1;
-                  return (
-                    <button
-                      key={pNum}
-                      type="button"
-                      onClick={() => onPageChange(pNum)}
-                      className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
-                        currentPage === pNum
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                          : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {pNum}
-                    </button>
-                  );
-                })}
-                {totalPages > 5 && <span className="px-1 text-slate-500">...</span>}
-                <button
-                  type="button"
-                  disabled={currentPage >= totalPages || loading}
+                  disabled={loading}
                   onClick={() => onPageChange(currentPage + 1)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 disabled:opacity-40 transition"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition disabled:opacity-50"
                 >
-                  Sonraki
+                  <Layers className="w-4 h-4" />
+                  {loading ? "Yükleniyor..." : "Daha Fazla Ürün Yükle"}
                 </button>
-              </div>
+              )}
             </div>
           )}
         </div>

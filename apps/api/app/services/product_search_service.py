@@ -82,7 +82,8 @@ class ProductSearchService:
                 cls.last_stats["n11"] = len(scraped_items)
             else:
                 # "all" (Tüm Pazaryerleri): 4 pazaryeri paralel taranır
-                sub_limit = max(6, limit // 3)
+                # Her marketplace limit/2 ürün çeker → 4 marketplace × limit/2 = 2×limit ham veri
+                sub_limit = max(12, limit // 2)
                 results_batch = await asyncio.gather(
                     run_scraper_safe(TrendyolScraper(), "Trendyol", sub_limit),
                     run_scraper_safe(HepsiburadaScraper(), "Hepsiburada", sub_limit),

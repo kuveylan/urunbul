@@ -310,7 +310,7 @@ async def search_products(
     4 Pazaryeri (Trendyol, Hepsiburada, Amazon TR, N11) Canlı Arama ve 15 Dakikalık Akıllı Önbellek Motoru.
     marketplace=all olduğunda tüm pazaryerleri paralel taranır ve sonuçlar harmanlanır.
     """
-    limit = 72 if deep_scan else 24
+    limit = 96 if deep_scan else 48
     results = await ProductSearchService.search(
         query=q,
         marketplace=marketplace or "all",

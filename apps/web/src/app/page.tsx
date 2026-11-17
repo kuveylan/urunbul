@@ -81,7 +81,7 @@ export default function HomePage() {
   const [totalScannedVolume, setTotalScannedVolume] = useState<number>(14850);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(412);
-  const [isDeepScan, setIsDeepScan] = useState<boolean>(false);
+  const [isDeepScan, setIsDeepScan] = useState<boolean>(true);
   const [currentCategory, setCurrentCategory] = useState<string>("Tüm Kategoriler");
   const [selectedMarketplace, setSelectedMarketplace] = useState<string>("all");
   const [scraperStats, setScraperStats] = useState<{ trendyol: number; hepsiburada: number; amazon: number; n11: number } | null>(null);
@@ -189,9 +189,19 @@ export default function HomePage() {
       }
 
       if (data && data.length > 0) {
-        setProducts(data);
+        // page > 1 ise ürünleri mevcut listeye EKLE (append), aksi halde yenile
+        if (page > 1) {
+          setProducts((prev) => {
+            // Duplicate önleme: external_id + marketplace kombinasyonu ile filtrele
+            const existingKeys = new Set(prev.map((p) => `${p.marketplace}:${p.external_id}`));
+            const newOnes = data.filter((p) => !existingKeys.has(`${p.marketplace}:${p.external_id}`));
+            return [...prev, ...newOnes];
+          });
+        } else {
+          setProducts(data);
+        }
         setErrorMessage("");
-      } else {
+      } else if (page === 1) {
         setErrorMessage("Aramanıza uygun ürün bulunamadı. Lütfen arama kelimesini veya kategoriyi değiştirerek tekrar deneyin.");
       }
       decrementSearchQuota();
